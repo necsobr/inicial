@@ -1,0 +1,20 @@
+ADM:Acesso master, vai ser capaz de admnistar usuarios e seus niveis
+ de permição, configurar APIS, produção e criação e gestão de equipes.
+
+Usuario: Cada usuario tera um nivel de acesso designado pelo ADM, eles serão patrocinador, 
+coordenador de comunicação e trio(Todos percem a uma equipe especifica).:
+    - Patrocinador: Usuario padrão ele poderá se inscrever para a fila de patrocinio do mês o que irá
+    gerar uma tela de pagamento com um preço baseado nas informações disponibilizadas pelo coordenador
+    de comunicação, tera que ter acesso a um calendario mostrando as datas de reunião e poderá ver a fila
+    de patrocinio.
+
+    - Coordenador de comunicação: No começo de cada mês ira inserir a data das reuniões para serem exibidas
+    aos outros membros, também informará o número de cópias e tipo de papel usado na impressão dos produtos
+    e gerenciara o número de patrocinadores do mês. Poderá inserir pdfs para serem adicionados a fila de
+    produção e gerir os membros do grupo(saidas e entradas)
+
+    - Produção: Terá acesso aos pedidos feitos pelo coordenador de comunicação e tera a opção de liberar
+    para impressão via API e poderá gerenciar toda a parte de impreções e entrega
+
+    - Trio: receberá notificações de diversas partes do processo, como entrada e saída de membros do seu
+    grupo, novos patrocinadores na fila, quando pedidos forem entregues.
