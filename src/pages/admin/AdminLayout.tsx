@@ -1,0 +1,84 @@
+import { useState } from 'react';
+import { NavLink, Outlet } from 'react-router-dom';
+import {
+  LayoutDashboard, Users, Layers, DollarSign, Printer, Settings, Menu, X
+} from 'lucide-react';
+
+const links = [
+  { to: '/admin', icone: LayoutDashboard, label: 'Dashboard', exact: true },
+  { to: '/admin/usuarios', icone: Users, label: 'Usuários' },
+  { to: '/admin/equipes', icone: Layers, label: 'Gestores e Equipes' },
+  { to: '/admin/patrocinadores', icone: DollarSign, label: 'Patrocinadores' },
+  { to: '/admin/producao', icone: Printer, label: 'Produção' },
+  { to: '/admin/configuracoes', icone: Settings, label: 'Configurações' },
+];
+
+export default function AdminLayout() {
+  const [sidebarAberta, setSidebarAberta] = useState(false);
+
+  return (
+    <div className="flex min-h-[calc(100vh-4rem)]">
+      {/* Overlay mobile */}
+      {sidebarAberta && (
+        <div
+          className="fixed inset-0 z-30 bg-slate-900/50 lg:hidden"
+          onClick={() => setSidebarAberta(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed top-16 left-0 bottom-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300
+        ${sidebarAberta ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 lg:static lg:flex lg:z-auto
+      `}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div>
+            <p className="text-xs font-bold text-[#E63946] uppercase tracking-wider">Painel ADM</p>
+            <p className="text-sm font-black text-slate-900">Administração</p>
+          </div>
+          <button className="lg:hidden" onClick={() => setSidebarAberta(false)}>
+            <X className="h-4 w-4 text-slate-400" />
+          </button>
+        </div>
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          {links.map(l => {
+            const Icone = l.icone;
+            return (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                end={l.exact}
+                onClick={() => setSidebarAberta(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    isActive
+                      ? 'bg-[#E63946] text-white shadow-md shadow-[#E63946]/20'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  }`
+                }
+              >
+                <Icone className="h-4 w-4 shrink-0" />
+                {l.label}
+              </NavLink>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* Content */}
+      <main className="flex-1 min-w-0">
+        <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-200 bg-white sticky top-16 z-20">
+          <button
+            onClick={() => setSidebarAberta(true)}
+            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <span className="text-sm font-bold text-slate-700">Menu</span>
+        </div>
+        <Outlet />
+      </main>
+    </div>
+  );
+}
