@@ -44,3 +44,26 @@ export function labelPapel(papel: string): string {
   };
   return mapa[papel] ?? papel;
 }
+
+export function labelDiaSemana(dia: string | undefined): string {
+  if (!dia) return '';
+  const mapa: Record<string, string> = {
+    domingo: 'Domingo',
+    segunda: 'Segunda-feira',
+    terca: 'Terça-feira',
+    quarta: 'Quarta-feira',
+    quinta: 'Quinta-feira',
+    sexta: 'Sexta-feira',
+    sabado: 'Sábado',
+  };
+  return mapa[dia] ?? dia;
+}
+
+export function labelStatusOS(status: string): string {
+  const mapa: Record<string, string> = {
+    ativa: 'Ativa',
+    encerrada: 'Encerrada',
+    cancelada: 'Cancelada',
+  };
+  return mapa[status] ?? status;
+}

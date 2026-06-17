@@ -1,16 +1,21 @@
 import type {
   Usuario, Equipe, Membro, Evento, Palestrante,
-  SolicitacaoPatrocinio, RequisicaoImpressao, ConfiguracaoIntegracao, Notificacao
+  SolicitacaoPatrocinio, RequisicaoImpressao, ConfiguracaoIntegracao, Notificacao,
+  OrdemServico, SolicitacaoAdesao, MapaReferencia, EntradaFila, SolicitacaoCriacaoGrupo
 } from '../types';
+import { calcularPrecoCota } from '../utils/ordemServico';
+
+export const CUSTO_BASE_REUNIAO = 120;
 
 export const USUARIOS_PADRAO: Usuario[] = [
   { id: 'u-1', nome: 'Administrador AIprint', email: 'admin@aiprint.com', papel: 'admin', ativo: true },
-  { id: 'u-2', nome: 'João Gestor', email: 'coordenador@aiprint.com', papel: 'coordenador', equipeId: 'eq-1', ativo: true },
-  { id: 'u-3', nome: 'Carlos Mendes', email: 'membro@aiprint.com', papel: 'membro', telefone: '(12) 99901-0099', equipeId: 'eq-1', ativo: true },
+  { id: 'u-2', nome: 'João Gestor', email: 'coordenador@aiprint.com', papel: 'coordenador', equipeId: 'eq-1', telefone: '(12) 99800-0001', ativo: true },
+  { id: 'u-3', nome: 'Carlos Mendes', email: 'membro@aiprint.com', papel: 'membro', telefone: '(12) 99901-0099', empresa: 'Mendes Consultoria', equipeId: 'eq-1', ativo: true },
   { id: 'u-4', nome: 'Rodrigo Produção', email: 'producao@aiprint.com', papel: 'producao', ativo: true },
   { id: 'u-5', nome: 'Ana Gestora', email: 'gestor2@aiprint.com', papel: 'coordenador', equipeId: 'eq-2', ativo: true },
   { id: 'u-6', nome: 'Marcos Gestor', email: 'gestor3@aiprint.com', papel: 'coordenador', equipeId: 'eq-3', ativo: true },
   { id: 'u-7', nome: 'Natasha Negreiros', email: 'trio@aiprint.com', papel: 'trio', telefone: '(12) 99901-0001', equipeId: 'eq-1', ativo: true },
+  { id: 'u-8', nome: 'Gustavo Fernandes', email: 'gustavo@teste.com', papel: 'membro', telefone: '(12) 99777-1234', empresa: 'Fernandes Tecnologia', equipeId: 'eq-1', ativo: false, pendente: true },
 ];
 
 export const EQUIPES_PADRAO: Equipe[] = [
@@ -125,12 +130,12 @@ export const EQUIPES_PADRAO: Equipe[] = [
 ];
 
 export const MEMBROS_PADRAO: Membro[] = [
-  { id: 'm-1', nome: 'Natasha Negreiros', empresa: 'Negreiros Advocacia', especialidade: 'Advocacia Empresarial', contato: '(12) 99901-0001', nivel: 'Presidente / Trio', equipeId: 'eq-1' },
-  { id: 'm-2', nome: 'Diogo Palmeira', empresa: 'Palmeira Advocacia', especialidade: 'Direito Civil', contato: '(12) 99901-0002', nivel: 'Vice-Presidente / Trio', equipeId: 'eq-1' },
-  { id: 'm-3', nome: 'Priscila de Ávila', empresa: 'Prudenza Marcas e Patentes', especialidade: 'Propriedade Intelectual', contato: '(12) 99901-0003', nivel: 'Secretário-Tesoureiro / Trio', equipeId: 'eq-1' },
+  { id: 'm-1', nome: 'Natasha Negreiros', empresa: 'Negreiros Advocacia', especialidade: 'Advocacia Empresarial', contato: '(12) 99901-0001', nivel: 'Trio', equipeId: 'eq-1', usuarioId: 'u-7' },
+  { id: 'm-2', nome: 'Diogo Palmeira', empresa: 'Palmeira Advocacia', especialidade: 'Direito Civil', contato: '(12) 99901-0002', nivel: 'Trio', equipeId: 'eq-1' },
+  { id: 'm-3', nome: 'Priscila de Ávila', empresa: 'Prudenza Marcas e Patentes', especialidade: 'Propriedade Intelectual', contato: '(12) 99901-0003', nivel: 'Trio', equipeId: 'eq-1' },
   { id: 'm-4', nome: 'Helton Fonseca', empresa: 'Unify Segurança do Trabalho', especialidade: 'Segurança do Trabalho', contato: '(12) 99901-0004', nivel: 'Coordenador de Educação', equipeId: 'eq-1' },
   { id: 'm-5', nome: 'Philipe Gerber', empresa: 'Agência Gerber', especialidade: 'Marketing Digital', contato: '(12) 99901-0005', nivel: 'Coordenador de Mídias', equipeId: 'eq-1' },
-  { id: 'm-6', nome: 'Rennan Marcondes', empresa: 'MAC Projetos e Construções', especialidade: 'Construção Civil', contato: '(12) 99901-0006', nivel: 'Coordenador de Comunicação', equipeId: 'eq-1' },
+  { id: 'm-6', nome: 'Rennan Marcondes', empresa: 'MAC Projetos e Construções', especialidade: 'Construção Civil', contato: '(12) 99901-0006', nivel: 'Coordenador de Comunicação', equipeId: 'eq-1', usuarioId: 'u-2' },
   { id: 'm-7', nome: 'Marcelo Barcelos', empresa: 'IBHPNL', especialidade: 'Coaching / PNL', contato: '(12) 99901-0007', nivel: 'Coordenador de Mentoria', equipeId: 'eq-1' },
   { id: 'm-8', nome: 'Mariana Panerari', empresa: 'Panerari Assessoria', especialidade: 'Assessoria Contábil', contato: '(12) 99901-0008', nivel: 'Coordenadora de Reconhecimento', equipeId: 'eq-1' },
   { id: 'm-9', nome: 'Marcus Alvarenga', empresa: 'Alvarenga Consultoria', especialidade: 'Consultoria Empresarial', contato: '(12) 99901-0009', nivel: 'Membro', equipeId: 'eq-1' },
@@ -156,10 +161,10 @@ export const EVENTOS_PADRAO: Evento[] = [
   { id: 'ev-1', titulo: 'Reunião de Convidados', data: '2026-06-02', hora: '06:30', local: 'Estação Coronel Oriente', tipo: 'reuniao', equipeId: 'eq-1' },
   { id: 'ev-2', titulo: 'Festa Junina INSPIRE', data: '2026-06-20', hora: '18:00', local: 'A definir', tipo: 'social', equipeId: 'eq-1' },
   { id: 'ev-3', titulo: 'Festa de 1 Ano da Equipe INSPIRE', data: '2026-07-15', hora: '19:00', local: 'A definir', tipo: 'aniversario', equipeId: 'eq-1' },
-  { id: 'ev-4', titulo: 'Reunião Semanal Regular', data: '2026-06-09', hora: '06:30', local: 'Estação Coronel Oriente', tipo: 'reuniao', equipeId: 'eq-1' },
-  { id: 'ev-5', titulo: 'Reunião Semanal Regular', data: '2026-06-16', hora: '06:30', local: 'Estação Coronel Oriente', tipo: 'reuniao', equipeId: 'eq-1' },
-  { id: 'ev-6', titulo: 'Reunião Semanal Regular', data: '2026-06-23', hora: '06:30', local: 'Estação Coronel Oriente', tipo: 'reuniao', equipeId: 'eq-1' },
-  { id: 'ev-7', titulo: 'Reunião Semanal Regular', data: '2026-06-30', hora: '06:30', local: 'Estação Coronel Oriente', tipo: 'reuniao', equipeId: 'eq-1' },
+  { id: 'ev-4', titulo: 'Reunião Semanal Regular', data: '2026-06-09', hora: '06:30', local: 'Estação Coronel Oriente', tipo: 'reuniao', equipeId: 'eq-1', ordemServicoId: 'os-1' },
+  { id: 'ev-5', titulo: 'Reunião Semanal Regular', data: '2026-06-16', hora: '06:30', local: 'Estação Coronel Oriente', tipo: 'reuniao', equipeId: 'eq-1', ordemServicoId: 'os-1' },
+  { id: 'ev-6', titulo: 'Reunião Semanal Regular', data: '2026-06-23', hora: '06:30', local: 'Estação Coronel Oriente', tipo: 'reuniao', equipeId: 'eq-1', ordemServicoId: 'os-1' },
+  { id: 'ev-7', titulo: 'Reunião Semanal Regular', data: '2026-06-30', hora: '06:30', local: 'Estação Coronel Oriente', tipo: 'reuniao', equipeId: 'eq-1', ordemServicoId: 'os-1' },
   { id: 'ev-8', titulo: 'Reunião Mensal BNI Conexão Centro', data: '2026-06-10', hora: '07:00', local: 'Sala de Reuniões Central', tipo: 'reuniao', equipeId: 'eq-2' },
   { id: 'ev-9', titulo: 'Workshop de Networking BNI Progresso Sul', data: '2026-06-17', hora: '09:00', local: 'Hotel Campinas Business', tipo: 'outro', equipeId: 'eq-3' },
 ];
@@ -265,16 +270,18 @@ export const NOTIFICACOES_PADRAO: Notificacao[] = [
   {
     id: 'not-1',
     tipo: 'membro',
-    mensagem: 'Carlos Mendes solicitou associação ao grupo VP INSPIRE.',
-    timestamp: '02/06/2026 às 08:15',
+    mensagem: 'Gustavo Fernandes solicitou associação ao grupo VP INSPIRE.',
+    timestamp: '17/06/2026 às 09:10',
     lida: false,
+    equipeId: 'eq-1',
   },
   {
     id: 'not-2',
     tipo: 'patrocinador',
-    mensagem: 'Samatos Financeira enviou solicitação de patrocínio para a semana de 09/06.',
-    timestamp: '01/06/2026 às 14:30',
+    mensagem: 'Mendes Consultoria confirmou participação na O.S. os-1.',
+    timestamp: '15/06/2026 às 14:30',
     lida: false,
+    equipeId: 'eq-1',
   },
   {
     id: 'not-3',
@@ -282,13 +289,50 @@ export const NOTIFICACOES_PADRAO: Notificacao[] = [
     mensagem: 'Mapa de referência VP INSPIRE (350 cópias) marcado como Pronto para entrega.',
     timestamp: '01/06/2026 às 11:00',
     lida: true,
+    equipeId: 'eq-1',
   },
   {
     id: 'not-4',
     tipo: 'sistema',
-    mensagem: 'Nova requisição de impressão recebida da equipe VP INSPIRE para evento de 09/06.',
+    mensagem: 'Nova O.S. cadastrada: Mapa Padrão Couché 180g — 4 reuniões às terças.',
     timestamp: '01/06/2026 às 09:00',
     lida: true,
+    equipeId: 'eq-1',
+  },
+];
+
+export const NOTIFICACOES_TRIO_PADRAO: Notificacao[] = [
+  {
+    id: 'ntrio-1',
+    tipo: 'membro',
+    mensagem: 'Gustavo Fernandes solicitou entrada no grupo VP INSPIRE e aguarda aprovação do coordenador.',
+    timestamp: '17/06/2026 às 09:10',
+    lida: false,
+    equipeId: 'eq-1',
+  },
+  {
+    id: 'ntrio-2',
+    tipo: 'atraso',
+    mensagem: 'Atenção: o mapa de referência para a reunião de 16/06/2026 ainda não foi enviado pelo coordenador. A entrega deve ocorrer até 15/06/2026.',
+    timestamp: '14/06/2026 às 08:00',
+    lida: false,
+    equipeId: 'eq-1',
+  },
+  {
+    id: 'ntrio-3',
+    tipo: 'cargo',
+    mensagem: 'O papel de Natasha Negreiros foi alterado de "Membro" para "Trio" pelo coordenador João Gestor.',
+    timestamp: '01/06/2026 às 10:00',
+    lida: true,
+    equipeId: 'eq-1',
+  },
+  {
+    id: 'ntrio-4',
+    tipo: 'membro',
+    mensagem: 'Carlos Mendes confirmou sua participação como patrocinador na O.S. Mapa Padrão Couché 180g.',
+    timestamp: '15/06/2026 às 14:30',
+    lida: true,
+    equipeId: 'eq-1',
   },
 ];
 
@@ -300,14 +344,16 @@ export const INTEGRACOES_PADRAO: ConfiguracaoIntegracao[] = [
     url: 'https://api.printmaster.com/v3/print',
     chaveApi: 'pm_live_8fa389bcde20a',
     ativa: true,
+    tipo: 'impressao',
   },
   {
     id: 'int-2',
-    nome: 'WhatsApp Business API',
-    descricao: 'Notificações automáticas via WhatsApp',
-    url: 'https://api.whatsapp.business/v2/messages',
-    chaveApi: 'wa_tok_382bc81fa3d',
+    nome: 'Evolution API — WhatsApp',
+    descricao: 'Notificações automáticas via WhatsApp (Evolution)',
+    url: 'https://evolution.seudominio.com/message/sendText',
+    chaveApi: 'evo_tok_382bc81fa3d',
     ativa: false,
+    tipo: 'whatsapp',
   },
   {
     id: 'int-3',
@@ -316,5 +362,132 @@ export const INTEGRACOES_PADRAO: ConfiguracaoIntegracao[] = [
     url: 'https://api.asaas.com/v3/payments',
     chaveApi: 'aas_live_key_secret',
     ativa: false,
+    tipo: 'pagamento',
   },
 ];
+
+export const ORDENS_SERVICO_PADRAO: OrdemServico[] = [
+  {
+    id: 'os-1',
+    equipeId: 'eq-1',
+    tipoPapel: 'Couché 180g',
+    numeroCopias: 350,
+    recorrencia: 'semanal',
+    diaSemana: 'terca',
+    numeroReunioes: 4,
+    numeroVagasPatrocinador: 4,
+    precoCota: calcularPrecoCota(4, 4, CUSTO_BASE_REUNIAO),
+    dataInicio: '2026-06-09',
+    status: 'ativa',
+    eventosGeradosIds: ['ev-4', 'ev-5', 'ev-6', 'ev-7'],
+    criadoPorId: 'u-2',
+    dataCriacao: '2026-06-01',
+  },
+  {
+    id: 'os-2',
+    equipeId: 'eq-1',
+    tipoPapel: 'Reciclado 120g',
+    numeroCopias: 150,
+    recorrencia: 'unica',
+    dataUnica: '2026-05-12',
+    numeroReunioes: 1,
+    numeroVagasPatrocinador: 1,
+    precoCota: calcularPrecoCota(1, 1, CUSTO_BASE_REUNIAO),
+    dataInicio: '2026-05-12',
+    status: 'encerrada',
+    eventosGeradosIds: [],
+    criadoPorId: 'u-2',
+    dataCriacao: '2026-05-01',
+  },
+];
+
+export const SOLICITACOES_ADESAO_PADRAO: SolicitacaoAdesao[] = [
+  {
+    id: 'adm-1',
+    usuarioId: 'u-8',
+    usuarioNome: 'Gustavo Fernandes',
+    usuarioEmail: 'gustavo@teste.com',
+    telefone: '(12) 99777-1234',
+    equipeId: 'eq-1',
+    equipeNome: 'VP INSPIRE',
+    dataSolicitacao: '2026-06-17',
+    status: 'pendente',
+  },
+];
+
+export const MAPAS_REFERENCIA_PADRAO: MapaReferencia[] = [
+  {
+    id: 'map-1',
+    equipeId: 'eq-1',
+    ordemServicoId: 'os-1',
+    eventoId: 'ev-4',
+    nomeArquivo: 'mapa_inspire_09jun2026.pdf',
+    dataUpload: '2026-06-07',
+    dataEntrega: '2026-06-08',
+    horaEntrega: '08:00',
+    enderecoEntrega: 'Estação Coronel Oriente, São José dos Campos/SP',
+    uploadPorId: 'u-2',
+  },
+];
+
+export const ENTRADAS_FILA_PADRAO: EntradaFila[] = [
+  {
+    id: 'fila-1',
+    ordemServicoId: 'os-1',
+    usuarioId: 'u-3',
+    usuarioNome: 'Carlos Mendes',
+    empresa: 'Mendes Consultoria',
+    telefone: '(12) 99901-0099',
+    posicao: 1,
+    status: 'confirmado',
+    dataEntrada: '2026-06-02',
+    dataExpiracao: '2026-06-19',
+  },
+  {
+    id: 'fila-2',
+    ordemServicoId: 'os-1',
+    usuarioId: 'mock-1',
+    usuarioNome: 'Vanessa Lopes',
+    empresa: 'Lopes Nutrição',
+    telefone: '(12) 99901-0010',
+    posicao: 2,
+    status: 'aguardando',
+    dataEntrada: '2026-06-03',
+    dataExpiracao: '2026-06-19',
+  },
+  {
+    id: 'fila-3',
+    ordemServicoId: 'os-1',
+    usuarioId: 'mock-2',
+    usuarioNome: 'Paulo Lima',
+    empresa: 'Lima Tecnologia',
+    telefone: '(12) 99901-0014',
+    posicao: 3,
+    status: 'aguardando',
+    dataEntrada: '2026-06-04',
+  },
+  {
+    id: 'fila-4',
+    ordemServicoId: 'os-1',
+    usuarioId: 'mock-3',
+    usuarioNome: 'Fernanda Souza',
+    empresa: 'Souza Imóveis',
+    telefone: '(12) 99901-0013',
+    posicao: 4,
+    status: 'aguardando',
+    dataEntrada: '2026-06-05',
+  },
+  {
+    id: 'fila-5',
+    ordemServicoId: 'os-1',
+    usuarioId: 'mock-4',
+    usuarioNome: 'Roberto Campos',
+    empresa: 'RC Seguros',
+    telefone: '(12) 99901-0012',
+    posicao: 5,
+    status: 'aguardando',
+    dataEntrada: '2026-06-06',
+  },
+];
+
+export const SOLICITACOES_CRIACAO_GRUPO_PADRAO: SolicitacaoCriacaoGrupo[] = [];

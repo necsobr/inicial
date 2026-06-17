@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import PendentePage from './pages/PendentePage';
 
 import AdminLayout from './pages/admin/AdminLayout';
 import DashboardPage from './pages/admin/DashboardPage';
@@ -16,12 +17,24 @@ import ProductionAdminPage from './pages/admin/ProductionPage';
 import SettingsPage from './pages/admin/SettingsPage';
 
 import CoordinatorDashboard from './pages/coordinator/CoordinatorDashboard';
-import SponsorDashboard from './pages/sponsor/SponsorDashboard';
+import MembroDashboard from './pages/membro/MembroDashboard';
+import TrioDashboard from './pages/trio/TrioDashboard';
 import ProductionDashboard from './pages/production/ProductionDashboard';
 import UserProfile from './pages/UserProfile';
 
 function AppRoutes() {
-  const { usuario } = useAuth();
+  const { usuario, carregando } = useAuth();
+
+  if (carregando) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F8F9FA]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 rounded-full border-4 border-[#E63946]/20 border-t-[#E63946] animate-spin" />
+          <p className="text-sm text-slate-400 font-medium">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-[#F8F9FA] overflow-x-hidden selection:bg-[#E63946] selection:text-white flex flex-col">
@@ -36,7 +49,22 @@ function AppRoutes() {
           <Route path="/" element={<LandingPage />} />
           <Route
             path="/login"
-            element={usuario ? <Navigate to="/" replace /> : <LoginPage />}
+            element={
+              usuario
+                ? usuario.pendente
+                  ? <Navigate to="/pendente" replace />
+                  : <Navigate to="/" replace />
+                : <LoginPage />
+            }
+          />
+
+          <Route
+            path="/pendente"
+            element={
+              usuario
+                ? <PendentePage />
+                : <Navigate to="/login" replace />
+            }
           />
 
           <Route
@@ -67,8 +95,8 @@ function AppRoutes() {
           <Route
             path="/membro"
             element={
-              <ProtectedRoute papeis={['membro', 'trio', 'coordenador']}>
-                <SponsorDashboard />
+              <ProtectedRoute papeis={['membro', 'coordenador', 'trio']}>
+                <MembroDashboard />
               </ProtectedRoute>
             }
           />
@@ -77,7 +105,7 @@ function AppRoutes() {
             path="/trio"
             element={
               <ProtectedRoute papeis={['trio']}>
-                <SponsorDashboard />
+                <TrioDashboard />
               </ProtectedRoute>
             }
           />

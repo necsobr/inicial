@@ -9,8 +9,8 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 

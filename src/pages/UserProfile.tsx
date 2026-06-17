@@ -2,12 +2,10 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, Lock, Shield, Save, CheckCircle, AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useStore } from '../contexts/StoreContext';
 import { labelPapel } from '../utils/format';
 
 export default function UserProfile() {
   const { usuario, atualizarPerfil } = useAuth();
-  const { usuarios, setUsuarios } = useStore();
   const navigate = useNavigate();
 
   const [nome, setNome] = useState(usuario?.nome ?? '');
@@ -23,39 +21,23 @@ export default function UserProfile() {
     return null;
   }
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErro('');
     setSucesso('');
 
-    if (!nome.trim()) {
-      setErro('O nome não pode estar vazio.');
-      return;
-    }
-    if (!email.trim()) {
-      setErro('O e-mail não pode estar vazio.');
-      return;
-    }
-
-    const emailOcupado = usuarios.some(
-      u => u.id !== usuario.id && u.email.toLowerCase() === email.trim().toLowerCase()
-    );
-    if (emailOcupado) {
-      setErro('Este e-mail já está sendo usado por outro usuário.');
-      return;
-    }
+    if (!nome.trim()) { setErro('O nome não pode estar vazio.'); return; }
+    if (!email.trim()) { setErro('O e-mail não pode estar vazio.'); return; }
 
     setSalvando(true);
-    setTimeout(() => {
-      atualizarPerfil({ nome: nome.trim(), email: email.trim().toLowerCase(), telefone: telefone.trim() });
-      setUsuarios(usuarios.map(u =>
-        u.id === usuario.id
-          ? { ...u, nome: nome.trim(), email: email.trim().toLowerCase(), telefone: telefone.trim() }
-          : u
-      ));
-      setSalvando(false);
+    try {
+      await atualizarPerfil({ nome: nome.trim(), email: email.trim().toLowerCase(), telefone: telefone.trim() });
       setSucesso('Perfil atualizado com sucesso!');
-    }, 800);
+    } catch {
+      setErro('Não foi possível salvar as alterações. Tente novamente.');
+    } finally {
+      setSalvando(false);
+    }
   };
 
   const iniciaisNome = nome.trim().substring(0, 2).toUpperCase() || 'US';

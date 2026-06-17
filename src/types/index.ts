@@ -1,7 +1,14 @@
 export type UserRole = 'admin' | 'coordenador' | 'trio' | 'membro' | 'producao';
 export type StatusImpressao = 'recebido' | 'em_producao' | 'pronto' | 'entregue';
 export type StatusPatrocinio = 'aguardando_aprovacao' | 'aprovada' | 'recusada' | 'concluida';
-export type TipoNotificacao = 'membro' | 'patrocinador' | 'entrega' | 'sistema';
+export type TipoNotificacao = 'membro' | 'patrocinador' | 'entrega' | 'sistema' | 'atraso' | 'cargo';
+export type TipoRecorrenciaOS = 'semanal' | 'unica';
+export type DiaSemana = 'domingo' | 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado';
+export type StatusOS = 'ativa' | 'encerrada' | 'cancelada';
+export type StatusEntradaFila = 'aguardando' | 'confirmado' | 'recusado' | 'pago' | 'expirado';
+export type StatusAdesao = 'pendente' | 'aceita' | 'recusada';
+export type StatusCriacaoGrupo = 'pendente' | 'aprovada' | 'recusada';
+export type TipoIntegracao = 'impressao' | 'whatsapp' | 'pagamento';
 
 export interface Usuario {
   id: string;
@@ -10,7 +17,10 @@ export interface Usuario {
   papel: UserRole;
   equipeId?: string;
   telefone?: string;
+  empresa?: string;
   ativo: boolean;
+  pendente?: boolean;
+  solicitacaoCriacaoGrupoId?: string;
 }
 
 export interface Notificacao {
@@ -19,6 +29,7 @@ export interface Notificacao {
   mensagem: string;
   timestamp: string;
   lida: boolean;
+  equipeId?: string;
 }
 
 export interface Membro {
@@ -29,6 +40,7 @@ export interface Membro {
   contato: string;
   nivel: string;
   equipeId: string;
+  usuarioId?: string;
 }
 
 export interface Evento {
@@ -39,6 +51,25 @@ export interface Evento {
   local?: string;
   tipo: 'reuniao' | 'social' | 'aniversario' | 'outro';
   equipeId: string;
+  ordemServicoId?: string;
+}
+
+export interface OrdemServico {
+  id: string;
+  equipeId: string;
+  tipoPapel: string;
+  numeroCopias?: number;
+  recorrencia: TipoRecorrenciaOS;
+  diaSemana?: DiaSemana;
+  dataUnica?: string;
+  numeroReunioes: number;
+  numeroVagasPatrocinador: number;
+  precoCota: number;
+  dataInicio: string;
+  status: StatusOS;
+  eventosGeradosIds: string[];
+  criadoPorId: string;
+  dataCriacao: string;
 }
 
 export interface Palestrante {
@@ -118,4 +149,57 @@ export interface ConfiguracaoIntegracao {
   url: string;
   chaveApi: string;
   ativa: boolean;
+  tipo: TipoIntegracao;
+}
+
+export interface SolicitacaoAdesao {
+  id: string;
+  usuarioId: string;
+  usuarioNome: string;
+  usuarioEmail: string;
+  telefone: string;
+  equipeId: string;
+  equipeNome: string;
+  dataSolicitacao: string;
+  status: StatusAdesao;
+}
+
+export interface MapaReferencia {
+  id: string;
+  equipeId: string;
+  ordemServicoId: string;
+  eventoId: string;
+  nomeArquivo: string;
+  dataUpload: string;
+  dataEntrega: string;
+  horaEntrega: string;
+  enderecoEntrega: string;
+  uploadPorId: string;
+}
+
+export interface EntradaFila {
+  id: string;
+  ordemServicoId: string;
+  usuarioId: string;
+  usuarioNome: string;
+  empresa: string;
+  telefone: string;
+  posicao: number;
+  status: StatusEntradaFila;
+  dataEntrada: string;
+  dataExpiracao?: string;
+}
+
+export interface SolicitacaoCriacaoGrupo {
+  id: string;
+  usuarioId: string;
+  usuarioNome: string;
+  usuarioEmail: string;
+  telefone: string;
+  empresa: string;
+  nomeGrupo: string;
+  regional: string;
+  cidade: string;
+  dataSolicitacao: string;
+  status: StatusCriacaoGrupo;
 }

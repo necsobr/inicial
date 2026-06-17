@@ -11,6 +11,7 @@ export default function ProtectedRoute({ children, papeis }: Props) {
   const { usuario } = useAuth();
 
   if (!usuario) return <Navigate to="/login" replace />;
+  if (usuario.pendente) return <Navigate to="/pendente" replace />;
   if (!papeis.includes(usuario.papel)) return <Navigate to="/" replace />;
 
   return <>{children}</>;

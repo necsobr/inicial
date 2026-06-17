@@ -16,5 +16,15 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    proxy: {
+      '/api': {
+        target: 'http://nginx',
+        changeOrigin: true,
+      },
+      '/sanctum': {
+        target: 'http://nginx',
+        changeOrigin: true,
+      },
+    },
   },
 });
