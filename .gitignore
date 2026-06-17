@@ -23,6 +23,7 @@ backend/_ide_helper*.php
 
 # ─── Docker ─────────────────────────────────
 certbot/
+docker/nginx/active.conf
 
 # ─── IDEs ───────────────────────────────────
 .idea/
