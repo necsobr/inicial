@@ -45,9 +45,9 @@ backend/
 └── routes/api.php
 
 src/
-├── pages/          # Páginas por papel (admin/, coordinator/, membro/, production/, trio/)
+├── pages/          # Páginas por papel (admin/, coordinator/, membro/, production/, sponsor/, trio/)
 ├── components/     # Componentes reutilizáveis (Navbar, Modal, Toast, etc.)
-├── services/       # Chamadas à API (api.ts, authService.ts, storeService.ts)
+├── services/       # Chamadas à API (api.ts, authService.ts, mappers.ts, mockData.ts, storeService.ts)
 ├── contexts/       # AuthContext, StoreContext
 ├── hooks/          # useToast
 ├── utils/          # format.ts (formatarMoeda, formatarData, etc.)
