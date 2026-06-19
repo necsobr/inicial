@@ -17,5 +17,4 @@ return [
         ),
     ],
     'maintenance' => ['driver' => 'file'],
-    'providers' => [],
 ];

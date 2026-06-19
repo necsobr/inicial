@@ -18,9 +18,7 @@ DEPLOY_SECRET ?= aiprint-preview
 # ─────────────────────────────────────────────
 
 up:
-	$(COMPOSE) down --remove-orphans
-	$(COMPOSE) build
-	$(COMPOSE) up -d
+	$(COMPOSE) up -d --build --remove-orphans
 	@echo "$(GREEN)✔ Ambiente rodando em http://localhost$(RESET)"
 
 down:
@@ -29,7 +27,8 @@ down:
 install:
 	$(COMPOSE) run --rm node npm install
 	$(COMPOSE) run --rm app composer install
-	@if [ ! -f backend/.env ]; then cp backend/.env.example backend/.env && $(COMPOSE) run --rm app php artisan key:generate; fi
+	@if [ ! -f backend/.env ]; then cp backend/.env.example backend/.env; fi
+	@if ! grep -q "^APP_KEY=.\+" backend/.env; then $(COMPOSE) run --rm app php artisan key:generate; fi
 	@echo "$(GREEN)✔ Dependências instaladas.$(RESET)"
 
 # ─────────────────────────────────────────────

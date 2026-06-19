@@ -1,14 +1,9 @@
 FROM php:8.4-fpm-alpine
 
-RUN apk add --no-cache \
-    git curl zip unzip bash shadow \
-    libpng-dev libjpeg-turbo-dev libwebp-dev freetype-dev \
-    icu-dev oniguruma-dev linux-headers \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install \
-        pdo pdo_mysql gd intl bcmath opcache pcntl mbstring \
-    && pecl install redis \
-    && docker-php-ext-enable redis
+ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+
+RUN apk add --no-cache git curl zip unzip bash shadow \
+    && install-php-extensions pdo_mysql gd intl bcmath opcache pcntl mbstring redis
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
