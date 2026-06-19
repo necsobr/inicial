@@ -1,14 +1,15 @@
 FROM php:8.4-fpm-alpine
 
 RUN apk add --no-cache \
-    git curl zip unzip bash shadow \
+    git curl zip unzip bash shadow autoconf g++ make \
     libpng-dev libjpeg-turbo-dev libwebp-dev freetype-dev \
     icu-dev oniguruma-dev linux-headers \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install \
         pdo pdo_mysql gd intl bcmath opcache pcntl mbstring \
     && pecl install redis \
-    && docker-php-ext-enable redis
+    && docker-php-ext-enable redis \
+    && apk del autoconf g++ make
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
