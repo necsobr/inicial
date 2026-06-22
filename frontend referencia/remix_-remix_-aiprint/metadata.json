@@ -1,8 +1,0 @@
-{
-  "name": "Remix: Remix: AIprint",
-  "description": "Plataforma de gestão e delivery de mapas de referência com design moderno e recursos de colaboração.",
-  "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}

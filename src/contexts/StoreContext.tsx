@@ -6,9 +6,6 @@ import type {
   OrdemServico, SolicitacaoAdesao, MapaReferencia, EntradaFila, SolicitacaoCriacaoGrupo,
 } from '../types';
 import {
-  PALESTRANTES_PADRAO,
-} from '../services/mockData';
-import {
   carregarDadosIniciais, carregarSolicitacoesCriacaoGrupo,
   equipeService, ordemServicoService, mapaReferenciaService,
   filaService, adesaoService, criacaoGrupoService,
@@ -16,6 +13,13 @@ import {
 } from '../services/storeService';
 import { authService } from '../services/authService';
 import { getToken } from '../services/api';
+
+const PALESTRANTES_PADRAO: Palestrante[] = [
+  { id: 'pal-1', nome: 'Vanessa Lopes', data: '2026-06-09', equipeId: 'eq-1' },
+  { id: 'pal-2', nome: 'Mariana Panerari', data: '2026-06-16', equipeId: 'eq-1' },
+  { id: 'pal-3', nome: 'Marcelo Barcelos', data: '2026-06-23', equipeId: 'eq-1' },
+  { id: 'pal-4', nome: 'Marcus Alvarenga', data: '2026-06-30', equipeId: 'eq-1' },
+];
 
 interface StoreContextType {
   // Estado

@@ -14,7 +14,8 @@ import { formatarMoeda, formatarData, labelDiaSemana, labelStatusOS } from '../.
 import { calcularPrecoCota } from '../../utils/ordemServico';
 import Modal from '../../components/Modal';
 import type { OrdemServico, TipoNotificacao, MapaReferencia, DiaSemana, TipoRecorrenciaOS, UserRole } from '../../types';
-import { CUSTO_BASE_REUNIAO } from '../../services/mockData';
+
+const CUSTO_BASE_REUNIAO = 120;
 
 type Aba = 'painel' | 'os' | 'mapa' | 'membros' | 'alertas';
 
