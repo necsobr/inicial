@@ -31,6 +31,32 @@ class MembershipRequestController extends Controller
         ]);
     }
 
+    public function store(Request $request): JsonResponse
+    {
+        $request->validate(['team_id' => ['required', 'exists:teams,id']]);
+
+        $user = $request->user();
+
+        MembershipRequest::where('user_id', $user->id)
+            ->where('status', 'pendente')
+            ->update(['status' => 'recusada']);
+
+        $mr = MembershipRequest::create([
+            'user_id'      => $user->id,
+            'team_id'      => $request->team_id,
+            'phone'        => $user->phone,
+            'status'       => 'pendente',
+            'requested_at' => now()->toDateString(),
+        ]);
+
+        $user->update(['pending' => true]);
+
+        return response()->json([
+            'data' => new MembershipRequestResource($mr->load('user', 'team')),
+            'message' => 'Solicitação enviada.',
+        ], 201);
+    }
+
     public function accept(MembershipRequest $membershipRequest): JsonResponse
     {
         $membershipRequest->update(['status' => 'aceita']);

@@ -6,6 +6,7 @@ export type TipoRecorrenciaOS = 'semanal' | 'unica';
 export type DiaSemana = 'domingo' | 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado';
 export type StatusOS = 'ativa' | 'encerrada' | 'cancelada';
 export type StatusEntradaFila = 'aguardando' | 'confirmado' | 'recusado' | 'pago' | 'expirado';
+export type StatusMapaReferencia = 'recebido' | 'em_producao' | 'pronto' | 'entregue';
 export type StatusAdesao = 'pendente' | 'aceita' | 'recusada';
 export type StatusCriacaoGrupo = 'pendente' | 'aprovada' | 'recusada';
 export type TipoIntegracao = 'impressao' | 'whatsapp' | 'pagamento';
@@ -57,6 +58,7 @@ export interface Evento {
 export interface OrdemServico {
   id: string;
   equipeId: string;
+  nome?: string;
   tipoPapel: string;
   numeroCopias?: number;
   recorrencia: TipoRecorrenciaOS;
@@ -170,10 +172,12 @@ export interface MapaReferencia {
   ordemServicoId: string;
   eventoId: string;
   nomeArquivo: string;
+  fileUrl?: string;
   dataUpload: string;
   dataEntrega: string;
   horaEntrega: string;
   enderecoEntrega: string;
+  status: StatusMapaReferencia;
   uploadPorId: string;
 }
 

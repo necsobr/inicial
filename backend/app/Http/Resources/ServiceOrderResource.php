@@ -12,6 +12,7 @@ class ServiceOrderResource extends JsonResource
         return [
             'id' => $this->id,
             'teamId' => $this->team_id,
+            'name' => $this->name,
             'paperType' => $this->paper_type,
             'copies' => $this->copies,
             'recurrence' => $this->recurrence,

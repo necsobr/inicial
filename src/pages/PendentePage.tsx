@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Clock, LogOut, RefreshCw, CheckCircle, Users, XCircle, PlusCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useStore } from '../contexts/StoreContext';
+import { adesaoService } from '../services/storeService';
 import { useNavigate } from 'react-router-dom';
 
 export default function PendentePage() {
   const { usuario, logout } = useAuth();
-  const { equipes, solicitacoesAdesao, setSolicitacoesAdesao, setUsuarios, usuarios, solicitacoesCriacaoGrupo } = useStore();
+  const { equipes, solicitacoesAdesao, setSolicitacoesAdesao, solicitacoesCriacaoGrupo } = useStore();
   const navigate = useNavigate();
   const [trocando, setTrocando] = useState(false);
   const [novaEquipeId, setNovaEquipeId] = useState('');
@@ -20,31 +21,21 @@ export default function PendentePage() {
   const minhasSolicitacoes = solicitacoesAdesao.filter(s => s.usuarioId === usuario.id && s.status === 'pendente');
   const equipeAtual = equipes.find(e => e.id === usuario.equipeId);
 
-  const trocarEquipe = () => {
+  const trocarEquipe = async () => {
     if (!novaEquipeId || novaEquipeId === usuario.equipeId) return;
-    const novaEquipe = equipes.find(e => e.id === novaEquipeId);
-    const novaSolicitacao = {
-      id: `adm-${Date.now()}`,
-      usuarioId: usuario.id,
-      usuarioNome: usuario.nome,
-      usuarioEmail: usuario.email,
-      telefone: usuario.telefone ?? '',
-      equipeId: novaEquipeId,
-      equipeNome: novaEquipe?.nome ?? '',
-      dataSolicitacao: new Date().toISOString().slice(0, 10),
-      status: 'pendente' as const,
-    };
-    setSolicitacoesAdesao([...solicitacoesAdesao.map(s =>
-      s.usuarioId === usuario.id && s.status === 'pendente'
-        ? { ...s, status: 'recusada' as const }
-        : s
-    ), novaSolicitacao]);
-    setUsuarios(usuarios.map(u => u.id === usuario.id
-      ? { ...u, equipeId: novaEquipeId, solicitacaoCriacaoGrupoId: undefined }
-      : u
-    ));
-    setTrocando(false);
-    setNovaEquipeId('');
+    try {
+      const nova = await adesaoService.criar(novaEquipeId);
+      setSolicitacoesAdesao([
+        ...solicitacoesAdesao.map(s =>
+          s.usuarioId === usuario.id && s.status === 'pendente'
+            ? { ...s, status: 'recusada' as const }
+            : s
+        ),
+        nova,
+      ]);
+      setTrocando(false);
+      setNovaEquipeId('');
+    } catch {}
   };
 
   const handleLogout = async () => {
@@ -202,13 +193,15 @@ export default function PendentePage() {
 
           {!trocando ? (
             <div className="space-y-3">
-              <button
-                onClick={() => setTrocando(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/60 py-3 text-sm font-semibold text-slate-600 hover:bg-white hover:border-slate-300 transition"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Trocar de Equipe
-              </button>
+              {!usuario.solicitacaoCriacaoGrupoId && (
+                <button
+                  onClick={() => setTrocando(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/60 py-3 text-sm font-semibold text-slate-600 hover:bg-white hover:border-slate-300 transition"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Trocar de Equipe
+                </button>
+              )}
               <button
                 onClick={handleLogout}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#E63946]/10 py-3 text-sm font-semibold text-[#E63946] hover:bg-[#E63946]/20 transition"

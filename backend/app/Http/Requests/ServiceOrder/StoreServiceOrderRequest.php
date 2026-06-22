@@ -16,7 +16,8 @@ class StoreServiceOrderRequest extends FormRequest
     {
         return [
             'team_id' => ['required', 'exists:teams,id'],
-            'paper_type' => ['required', 'string', 'max:100'],
+            'name' => ['nullable', 'string', 'max:100'],
+            'paper_type' => ['required', 'in:A4,A3'],
             'copies' => ['nullable', 'integer', 'min:1'],
             'recurrence' => ['required', 'in:semanal,unica'],
             'day_of_week' => ['nullable', 'in:domingo,segunda,terca,quarta,quinta,sexta,sabado',

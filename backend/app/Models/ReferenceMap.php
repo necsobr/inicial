@@ -12,8 +12,8 @@ class ReferenceMap extends Model
 
     protected $fillable = [
         'team_id', 'service_order_id', 'event_id',
-        'file_name', 'upload_date', 'delivery_date', 'delivery_time',
-        'delivery_address', 'uploaded_by',
+        'file_name', 'file_path', 'upload_date', 'delivery_date', 'delivery_time',
+        'delivery_address', 'uploaded_by', 'status',
     ];
 
     protected function casts(): array

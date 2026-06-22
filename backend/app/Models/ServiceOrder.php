@@ -11,7 +11,7 @@ class ServiceOrder extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'team_id', 'paper_type', 'copies', 'recurrence', 'day_of_week',
+        'team_id', 'name', 'paper_type', 'copies', 'recurrence', 'day_of_week',
         'single_date', 'meetings_count', 'sponsor_slots', 'quota_price',
         'start_date', 'status', 'created_by',
     ];

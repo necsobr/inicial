@@ -138,11 +138,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <StoreProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <StoreProvider>
           <AppRoutes />
-        </AuthProvider>
-      </StoreProvider>
+        </StoreProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CheckCircle, X, Filter } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
+import { sponsorshipService } from '../../services/storeService';
 import { formatarMoeda, formatarData, labelStatusPatrocinio } from '../../utils/format';
 import type { StatusPatrocinio } from '../../types';
 
@@ -22,8 +23,11 @@ export default function SponsorsPage() {
     return eqOk && stOk;
   });
 
-  const atualizar = (id: string, status: StatusPatrocinio) => {
-    setSolicitacoes(solicitacoes.map(s => s.id === id ? { ...s, status } : s));
+  const atualizar = async (id: string, status: StatusPatrocinio) => {
+    try {
+      const atualizada = await sponsorshipService.atualizarStatus(id, status);
+      setSolicitacoes(solicitacoes.map(s => s.id === id ? atualizada : s));
+    } catch {}
   };
 
   return (

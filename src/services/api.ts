@@ -40,10 +40,31 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return text ? JSON.parse(text) : ({} as T);
 }
 
+async function uploadRequest<T>(path: string, formData: FormData): Promise<T> {
+  const token = getToken();
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: 'Erro desconhecido.' }));
+    throw new ApiError(res.status, err.message ?? 'Erro na requisição.');
+  }
+
+  const text = await res.text();
+  return text ? JSON.parse(text) : ({} as T);
+}
+
 export const api = {
-  get:    <T>(path: string)                  => request<T>('GET',    path),
-  post:   <T>(path: string, body?: unknown)  => request<T>('POST',   path, body),
-  put:    <T>(path: string, body?: unknown)  => request<T>('PUT',    path, body),
-  patch:  <T>(path: string, body?: unknown)  => request<T>('PATCH',  path, body),
-  delete: <T>(path: string)                  => request<T>('DELETE', path),
+  get:    <T>(path: string)                         => request<T>('GET',    path),
+  post:   <T>(path: string, body?: unknown)         => request<T>('POST',   path, body),
+  put:    <T>(path: string, body?: unknown)         => request<T>('PUT',    path, body),
+  patch:  <T>(path: string, body?: unknown)         => request<T>('PATCH',  path, body),
+  delete: <T>(path: string)                         => request<T>('DELETE', path),
+  upload: <T>(path: string, formData: FormData)     => uploadRequest<T>(path, formData),
 };

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, Edit, Trash2, CheckCircle, X, Search } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Search } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
 import Modal from '../../components/Modal';
 import { labelPapel } from '../../utils/format';
+import { usuarioService } from '../../services/storeService';
 import type { Usuario, UserRole } from '../../types';
 
 interface FormData {
@@ -38,46 +39,36 @@ export default function UsersPage() {
     return buscaOk && papelOk && statusOk;
   });
 
-  const abrirCriar = () => {
-    setEditando(null);
-    setForm(formVazio);
-    setModalAberto(true);
-  };
-
   const abrirEditar = (u: Usuario) => {
     setEditando(u);
     setForm({ nome: u.nome, email: u.email, papel: u.papel, equipeId: u.equipeId ?? '' });
     setModalAberto(true);
   };
 
-  const salvar = () => {
-    if (!form.nome || !form.email) return;
-    if (editando) {
-      setUsuarios(usuarios.map(u => u.id === editando.id
-        ? { ...u, nome: form.nome, email: form.email, papel: form.papel, equipeId: form.equipeId || undefined }
-        : u
-      ));
-    } else {
-      const novo: Usuario = {
-        id: `u-${Date.now()}`,
-        nome: form.nome,
-        email: form.email,
+  const salvar = async () => {
+    if (!editando) return;
+    try {
+      const atualizado = await usuarioService.atualizar(editando.id, {
         papel: form.papel,
-        equipeId: form.equipeId || undefined,
-        ativo: true,
-      };
-      setUsuarios([...usuarios, novo]);
-    }
-    setModalAberto(false);
+        equipeId: form.equipeId || null,
+      });
+      setUsuarios(usuarios.map(u => u.id === editando.id ? atualizado : u));
+      setModalAberto(false);
+    } catch {}
   };
 
-  const alternarStatus = (id: string) => {
-    setUsuarios(usuarios.map(u => u.id === id ? { ...u, ativo: !u.ativo } : u));
+  const alternarStatus = async (u: Usuario) => {
+    try {
+      const atualizado = await usuarioService.atualizar(u.id, { ativo: !u.ativo });
+      setUsuarios(usuarios.map(x => x.id === u.id ? atualizado : x));
+    } catch {}
   };
 
-  const excluir = (id: string) => {
-    if (id === 'u-1') return;
-    setUsuarios(usuarios.filter(u => u.id !== id));
+  const excluir = async (id: string) => {
+    try {
+      await usuarioService.excluir(id);
+      setUsuarios(usuarios.filter(u => u.id !== id));
+    } catch {}
   };
 
   return (
@@ -87,13 +78,6 @@ export default function UsersPage() {
           <h1 className="text-2xl font-extrabold text-slate-900">Usuários</h1>
           <p className="text-sm text-slate-500">Gerencie contas e permissões</p>
         </div>
-        <button
-          onClick={abrirCriar}
-          className="flex items-center gap-2 text-sm font-bold text-white bg-[#E63946] hover:bg-[#d62839] px-4 py-2.5 rounded-xl shadow-md transition"
-        >
-          <Plus className="h-4 w-4" />
-          Novo Usuário
-        </button>
       </div>
 
       {/* Filtros */}
@@ -167,8 +151,8 @@ export default function UsersPage() {
                   <td className="px-6 py-4 text-center">
                     <div className="flex justify-center gap-2">
                       <button onClick={() => abrirEditar(u)} className="text-indigo-500 hover:text-indigo-700 p-1"><Edit className="h-4 w-4" /></button>
-                      <button onClick={() => alternarStatus(u.id)} className="text-emerald-500 hover:text-emerald-700 p-1"><CheckCircle className="h-4 w-4" /></button>
-                      {u.id !== 'u-1' && <button onClick={() => excluir(u.id)} className="text-[#E63946] hover:text-red-700 p-1"><Trash2 className="h-4 w-4" /></button>}
+                      <button onClick={() => alternarStatus(u)} className="text-emerald-500 hover:text-emerald-700 p-1"><CheckCircle className="h-4 w-4" /></button>
+                      <button onClick={() => excluir(u.id)} className="text-[#E63946] hover:text-red-700 p-1"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -178,26 +162,8 @@ export default function UsersPage() {
         </table>
       </div>
 
-      <Modal aberto={modalAberto} onFechar={() => setModalAberto(false)} titulo={editando ? 'Editar Usuário' : 'Novo Usuário'}>
+      <Modal aberto={modalAberto} onFechar={() => setModalAberto(false)} titulo="Editar Usuário">
         <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Nome Completo</label>
-            <input
-              type="text"
-              value={form.nome}
-              onChange={e => setForm({ ...form, nome: e.target.value })}
-              className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">E-mail</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]"
-            />
-          </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Papel</label>
             <select

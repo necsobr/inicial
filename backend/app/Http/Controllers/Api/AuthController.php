@@ -78,6 +78,46 @@ class AuthController extends Controller
         ]);
     }
 
+    public function index(): JsonResponse
+    {
+        return response()->json(['data' => UserResource::collection(User::with('team')->get())]);
+    }
+
+    public function update(Request $request, User $user): JsonResponse
+    {
+        $actor = $request->user();
+        if (!$actor->isAdmin()) {
+            return response()->json(['message' => 'Acesso negado.'], 403);
+        }
+
+        $request->validate([
+            'role'    => ['sometimes', 'in:admin,coordenador,trio,membro,producao'],
+            'team_id' => ['sometimes', 'nullable', 'exists:teams,id'],
+            'active'  => ['sometimes', 'boolean'],
+        ]);
+
+        $user->update($request->only(['role', 'team_id', 'active']));
+
+        return response()->json([
+            'data' => new UserResource($user->fresh('team')),
+            'message' => 'Usuário atualizado com sucesso.',
+        ]);
+    }
+
+    public function destroy(Request $request, User $user): JsonResponse
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Acesso negado.'], 403);
+        }
+        if ($request->user()->id === $user->id) {
+            return response()->json(['message' => 'Não é possível excluir sua própria conta.'], 422);
+        }
+
+        $user->delete();
+
+        return response()->json(['message' => 'Usuário removido com sucesso.']);
+    }
+
     public function changeRole(Request $request, User $user): JsonResponse
     {
         $request->validate([

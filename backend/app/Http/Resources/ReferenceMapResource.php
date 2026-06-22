@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class ReferenceMapResource extends JsonResource
 {
@@ -15,10 +16,12 @@ class ReferenceMapResource extends JsonResource
             'serviceOrderId' => $this->service_order_id,
             'eventId' => $this->event_id,
             'fileName' => $this->file_name,
+            'fileUrl' => $this->file_path ? Storage::url($this->file_path) : null,
             'uploadDate' => $this->upload_date?->toDateString(),
             'deliveryDate' => $this->delivery_date?->toDateString(),
             'deliveryTime' => $this->delivery_time,
             'deliveryAddress' => $this->delivery_address,
+            'status' => $this->status,
             'uploadedBy' => $this->uploaded_by,
             'team' => $this->whenLoaded('team', fn() => new TeamResource($this->team)),
             'serviceOrder' => $this->whenLoaded('serviceOrder', fn() => new ServiceOrderResource($this->serviceOrder)),

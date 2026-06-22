@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Star, Plus, Package, CheckCircle, Clock, X, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStore } from '../../contexts/StoreContext';
+import { sponsorshipService } from '../../services/storeService';
 import { formatarMoeda, formatarData, labelStatusPatrocinio } from '../../utils/format';
 import Modal from '../../components/Modal';
 import PaymentScreen from './PaymentScreen';
-import type { SolicitacaoPatrocinio } from '../../types';
 
 const badgeStatus: Record<string, string> = {
   aguardando_aprovacao: 'bg-amber-100 text-amber-700',
@@ -44,22 +44,19 @@ export default function SponsorDashboard() {
     setPagamento({ ...form });
   };
 
-  const confirmarPagamento = () => {
+  const confirmarPagamento = async () => {
     if (!pagamento || !usuario) return;
-    const eq = equipes.find(e => e.id === pagamento.equipeId);
-    const nova: SolicitacaoPatrocinio = {
-      id: `sp-${Date.now()}`,
-      empresa: pagamento.empresa,
-      equipeId: pagamento.equipeId,
-      equipeNome: eq?.nome ?? '',
-      semana: pagamento.semana,
-      valor: pagamento.valor,
-      status: 'aguardando_aprovacao',
-      patrocinadorEmail: usuario.email,
-      patrocinadorNome: usuario.nome,
-      dataSolicitacao: new Date().toISOString().slice(0, 10),
-    };
-    setSolicitacoes([nova, ...solicitacoes]);
+    try {
+      const nova = await sponsorshipService.criar({
+        empresa: pagamento.empresa,
+        equipeId: pagamento.equipeId,
+        semana: pagamento.semana,
+        valor: pagamento.valor,
+        email: usuario.email,
+        nome: usuario.nome,
+      });
+      setSolicitacoes([nova, ...solicitacoes]);
+    } catch {}
     setPagamento(null);
     setForm({ empresa: '', equipeId: '', semana: '', valor: 850 });
     setFeedbackEnviado(true);

@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\GroupCreationRequestResource;
+use App\Http\Resources\TeamResource;
+use App\Http\Resources\UserResource;
 use App\Models\GroupCreationRequest;
+use App\Models\User;
 use App\Services\TeamService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,9 +40,13 @@ class GroupCreationRequestController extends Controller
         }
 
         $team = $this->teamService->approveGroupCreation($groupCreationRequest);
+        $user = User::find($groupCreationRequest->user_id);
 
         return response()->json([
-            'data' => new GroupCreationRequestResource($groupCreationRequest->fresh('user')),
+            'data' => [
+                'team' => new TeamResource($team),
+                'user' => new UserResource($user),
+            ],
             'message' => "Grupo '{$team->name}' aprovado e criado com sucesso.",
         ]);
     }

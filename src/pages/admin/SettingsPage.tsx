@@ -44,7 +44,7 @@ const LABEL_TIPO: Record<TipoIntegracao, string> = {
 };
 
 export default function SettingsPage() {
-  const { integracoes, setIntegracoes } = useStore();
+  const { integracoes, atualizarIntegracao, testarIntegracao } = useStore();
   const [expandida, setExpandida] = useState<string | null>(integracoes[0]?.id ?? null);
   const [urls, setUrls] = useState<Record<string, string>>(Object.fromEntries(integracoes.map(i => [i.id, i.url])));
   const [chaves, setChaves] = useState<Record<string, string>>(Object.fromEntries(integracoes.map(i => [i.id, i.chaveApi])));
@@ -54,19 +54,25 @@ export default function SettingsPage() {
   const [copiado, setCopiado] = useState<string | null>(null);
   const [salvo, setSalvo] = useState(false);
 
-  const toggleAtiva = (id: string) => {
-    setIntegracoes(integracoes.map(i => i.id === id ? { ...i, ativa: !i.ativa } : i));
+  const toggleAtiva = async (id: string) => {
+    const int = integracoes.find(i => i.id === id);
+    if (!int) return;
+    try {
+      await atualizarIntegracao(id, { ativa: !int.ativa });
+    } catch {}
   };
 
-  const testarConexao = (id: string) => {
-    setTestando({ ...testando, [id]: true });
-    setResultadoTeste({ ...resultadoTeste, [id]: null });
-    setTimeout(() => {
-      const int = integracoes.find(i => i.id === id);
-      const ok = !!(int?.ativa && chaves[id] && urls[id]);
-      setTestando({ ...testando, [id]: false });
-      setResultadoTeste({ ...resultadoTeste, [id]: ok ? 'ok' : 'erro' });
-    }, 1500);
+  const testarConexao = async (id: string) => {
+    setTestando(prev => ({ ...prev, [id]: true }));
+    setResultadoTeste(prev => ({ ...prev, [id]: null }));
+    try {
+      const ok = await testarIntegracao(id);
+      setTestando(prev => ({ ...prev, [id]: false }));
+      setResultadoTeste(prev => ({ ...prev, [id]: ok ? 'ok' : 'erro' }));
+    } catch {
+      setTestando(prev => ({ ...prev, [id]: false }));
+      setResultadoTeste(prev => ({ ...prev, [id]: 'erro' }));
+    }
   };
 
   const copiarChave = (id: string) => {
@@ -75,8 +81,12 @@ export default function SettingsPage() {
     setTimeout(() => setCopiado(null), 2000);
   };
 
-  const salvar = () => {
-    setIntegracoes(integracoes.map(i => ({ ...i, url: urls[i.id] ?? i.url, chaveApi: chaves[i.id] ?? i.chaveApi })));
+  const salvar = async () => {
+    try {
+      await Promise.all(integracoes.map(i =>
+        atualizarIntegracao(i.id, { url: urls[i.id] ?? i.url, chaveApi: chaves[i.id] ?? i.chaveApi })
+      ));
+    } catch {}
     setSalvo(true);
     setTimeout(() => setSalvo(false), 3000);
   };

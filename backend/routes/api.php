@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/register-group', [AuthController::class, 'registerGroup']);
+Route::get('/teams', [TeamController::class, 'index']);
 
 // Rotas autenticadas
 Route::middleware('auth:sanctum')->group(function () {
@@ -27,7 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
 
     // Equipes
-    Route::apiResource('teams', TeamController::class);
+    Route::apiResource('teams', TeamController::class)->except(['index']);
     Route::get('/my-team', [TeamController::class, 'myTeam']);
 
     // Membros (cartão BNI)
@@ -55,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Solicitações de adesão (entrar em equipe existente)
     Route::get('/membership-requests', [MembershipRequestController::class, 'index']);
+    Route::post('/membership-requests', [MembershipRequestController::class, 'store']);
     Route::post('/membership-requests/{membershipRequest}/accept', [MembershipRequestController::class, 'accept']);
     Route::post('/membership-requests/{membershipRequest}/reject', [MembershipRequestController::class, 'reject']);
 
@@ -81,6 +83,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Requisições de impressão
     Route::apiResource('print-requests', PrintRequestController::class);
 
-    // Alterar papel de usuário (coordenador/admin)
+    // Usuários
+    Route::get('/users', [AuthController::class, 'index']);
+    Route::put('/users/{user}', [AuthController::class, 'update']);
+    Route::delete('/users/{user}', [AuthController::class, 'destroy']);
     Route::put('/users/{user}/role', [AuthController::class, 'changeRole']);
 });

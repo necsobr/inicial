@@ -1,7 +1,7 @@
 import type {
   Usuario, Equipe, Membro, Evento, OrdemServico, MapaReferencia,
   EntradaFila, SolicitacaoAdesao, SolicitacaoCriacaoGrupo,
-  Notificacao, ConfiguracaoIntegracao,
+  Notificacao, ConfiguracaoIntegracao, RequisicaoImpressao, SolicitacaoPatrocinio,
 } from '../types';
 
 // ── API response shapes ────────────────────────────────────────────────────
@@ -30,7 +30,7 @@ export interface ApiEvent {
 }
 
 export interface ApiServiceOrder {
-  id: number; teamId: number; paperType: string; copies?: number | null;
+  id: number; teamId: number; name?: string | null; paperType: string; copies?: number | null;
   recurrence: string; dayOfWeek?: string | null; singleDate?: string | null;
   meetingsCount: number; sponsorSlots: number; quotaPrice: string;
   startDate: string; status: string; createdBy: number;
@@ -39,8 +39,8 @@ export interface ApiServiceOrder {
 
 export interface ApiReferenceMap {
   id: number; teamId: number; serviceOrderId: number; eventId: number;
-  fileName: string; uploadDate: string; deliveryDate: string;
-  deliveryTime: string; deliveryAddress: string; uploadedBy: number;
+  fileName: string; fileUrl?: string | null; uploadDate: string; deliveryDate: string;
+  deliveryTime: string; deliveryAddress: string; status: string; uploadedBy: number;
 }
 
 export interface ApiQueueEntry {
@@ -70,6 +70,18 @@ export interface ApiNotification {
 export interface ApiIntegration {
   id: number; name: string; description: string; url: string;
   apiKey?: string; active: boolean; type: string;
+}
+
+export interface ApiPrintRequest {
+  id: number; teamId: number; requesterEmail: string; requesterName: string;
+  quantity: number; eventDate?: string | null; notes?: string | null;
+  status: string; team?: ApiTeam; createdAt?: string | null;
+}
+
+export interface ApiSponsorshipRequest {
+  id: number; company: string; teamId: number; week: string;
+  amount: number; status: string; applicantEmail: string; applicantName: string;
+  requestedAt?: string | null; team?: ApiTeam; createdAt?: string | null;
 }
 
 // ── Mappers ────────────────────────────────────────────────────────────────
@@ -150,6 +162,7 @@ export function mapServiceOrder(o: ApiServiceOrder): OrdemServico {
   return {
     id: String(o.id),
     equipeId: String(o.teamId),
+    nome: o.name ?? undefined,
     tipoPapel: o.paperType,
     numeroCopias: o.copies ?? undefined,
     recorrencia: o.recurrence as OrdemServico['recorrencia'],
@@ -173,10 +186,12 @@ export function mapReferenceMap(r: ApiReferenceMap): MapaReferencia {
     ordemServicoId: String(r.serviceOrderId),
     eventoId: String(r.eventId),
     nomeArquivo: r.fileName,
+    fileUrl: r.fileUrl ?? undefined,
     dataUpload: r.uploadDate,
     dataEntrega: r.deliveryDate,
     horaEntrega: r.deliveryTime,
     enderecoEntrega: r.deliveryAddress,
+    status: (r.status ?? 'recebido') as import('../types').StatusMapaReferencia,
     uploadPorId: String(r.uploadedBy),
   };
 }
@@ -248,5 +263,35 @@ export function mapIntegration(i: ApiIntegration): ConfiguracaoIntegracao {
     chaveApi: i.apiKey ?? '',
     ativa: i.active,
     tipo: i.type as ConfiguracaoIntegracao['tipo'],
+  };
+}
+
+export function mapPrintRequest(r: ApiPrintRequest): RequisicaoImpressao {
+  return {
+    id: String(r.id),
+    equipeId: String(r.teamId),
+    equipeNome: r.team?.name ?? '',
+    solicitanteEmail: r.requesterEmail,
+    solicitanteNome: r.requesterName,
+    quantidade: r.quantity,
+    dataEvento: r.eventDate ?? '',
+    observacoes: r.notes ?? '',
+    status: r.status as RequisicaoImpressao['status'],
+    dataCriacao: r.createdAt ?? '',
+  };
+}
+
+export function mapSponsorshipRequest(s: ApiSponsorshipRequest): SolicitacaoPatrocinio {
+  return {
+    id: String(s.id),
+    empresa: s.company,
+    equipeId: String(s.teamId),
+    equipeNome: s.team?.name ?? '',
+    semana: s.week,
+    valor: s.amount,
+    status: s.status as SolicitacaoPatrocinio['status'],
+    patrocinadorEmail: s.applicantEmail,
+    patrocinadorNome: s.applicantName,
+    dataSolicitacao: s.requestedAt ?? '',
   };
 }

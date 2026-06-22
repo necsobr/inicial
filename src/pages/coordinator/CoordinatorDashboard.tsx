@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/Toast';
 import { useNavigate } from 'react-router-dom';
 import {
   User, FileText, Map, Users, Bell, AlertCircle, Check, Trash2,
@@ -41,19 +43,22 @@ export default function CoordinatorDashboard() {
   const navigate = useNavigate();
   const {
     equipes, membros, eventos,
-    notificacoes, setNotificacoes,
+    notificacoesTrio,
     ordensServico,
     solicitacoesAdesao,
     mapaReferencia,
     filasOS, usuarios,
-    notificacoesTrio,
     aceitarSolicitacaoAdesao,
     rejeitarSolicitacaoAdesao,
     alterarPapelUsuario,
     criarOrdemServico,
     uploadMapaReferencia,
+    marcarNotificacaoLida,
+    marcarTodasNotificacoesLidas,
+    removerNotificacao,
   } = useStore();
 
+  const { toasts, mostrar, remover: removerToast } = useToast();
   const [abaAtiva, setAbaAtiva] = useState<Aba>('painel');
   const [filtroAlertas, setFiltroAlertas] = useState<'todos' | 'nao_lidas' | TipoNotificacao>('todos');
 
@@ -62,7 +67,7 @@ export default function CoordinatorDashboard() {
   const ordensEquipe = ordensServico.filter(os => os.equipeId === usuario?.equipeId);
   const eventosEquipe = eventos.filter(ev => ev.equipeId === usuario?.equipeId);
   const pendentes = solicitacoesAdesao.filter(s => s.equipeId === usuario?.equipeId && s.status === 'pendente');
-  const notifEquipe = notificacoes.filter(n => !n.equipeId || n.equipeId === usuario?.equipeId);
+  const notifEquipe = notificacoesTrio.filter(n => !n.equipeId || n.equipeId === usuario?.equipeId);
   const naoLidas = notifEquipe.filter(n => !n.lida).length;
 
   // Meu Painel
@@ -76,16 +81,19 @@ export default function CoordinatorDashboard() {
   // O.S.
   const [modalOS, setModalOS] = useState(false);
   const [formOS, setFormOS] = useState<{
-    tipoPapel: string; numeroCopias: number; recorrencia: TipoRecorrenciaOS; diaSemana: DiaSemana;
-    dataUnica: string; numeroReunioes: number; numeroVagasPatrocinador: number;
-  }>({ tipoPapel: '', numeroCopias: 350, recorrencia: 'semanal', diaSemana: 'terca', dataUnica: '', numeroReunioes: 4, numeroVagasPatrocinador: 4 });
+    nome: string; tipoPapel: string; numeroCopias: number; recorrencia: TipoRecorrenciaOS; diaSemana: DiaSemana;
+    dataInicio: string; dataUnica: string; numeroReunioes: number; numeroVagasPatrocinador: number;
+  }>({ nome: '', tipoPapel: 'A4', numeroCopias: 350, recorrencia: 'semanal', diaSemana: 'terca', dataInicio: '', dataUnica: '', numeroReunioes: 4, numeroVagasPatrocinador: 4 });
   const precoCota = calcularPrecoCota(formOS.numeroReunioes, formOS.numeroVagasPatrocinador, CUSTO_BASE_REUNIAO);
 
   const criarOS = async () => {
     if (!formOS.tipoPapel || !usuario?.equipeId) return;
-    const dataInicio = formOS.recorrencia === 'unica' ? formOS.dataUnica : new Date().toISOString().slice(0, 10);
+    if (formOS.recorrencia === 'semanal' && !formOS.dataInicio) return;
+    if (formOS.recorrencia === 'unica' && !formOS.dataUnica) return;
+    const dataInicio = formOS.recorrencia === 'unica' ? formOS.dataUnica : formOS.dataInicio;
     const dadosOS: Partial<OrdemServico> = {
       equipeId: usuario.equipeId,
+      nome: formOS.nome || undefined,
       tipoPapel: formOS.tipoPapel,
       numeroCopias: formOS.numeroCopias,
       recorrencia: formOS.recorrencia,
@@ -100,12 +108,15 @@ export default function CoordinatorDashboard() {
     };
     await criarOrdemServico(dadosOS);
     setModalOS(false);
-    setFormOS({ tipoPapel: '', numeroCopias: 350, recorrencia: 'semanal', diaSemana: 'terca', dataUnica: '', numeroReunioes: 4, numeroVagasPatrocinador: 4 });
+    setFormOS({ nome: '', tipoPapel: 'A4', numeroCopias: 350, recorrencia: 'semanal', diaSemana: 'terca', dataInicio: '', dataUnica: '', numeroReunioes: 4, numeroVagasPatrocinador: 4 });
   };
 
   // Mapa de Referência
   const [modalMapa, setModalMapa] = useState(false);
-  const [formMapa, setFormMapa] = useState({ eventoId: '', nomeArquivo: '', dataEntrega: '', horaEntrega: '08:00', enderecoEntrega: '' });
+  const [formMapa, setFormMapa] = useState({ eventoId: '', dataEntrega: '', horaEntrega: '08:00', enderecoEntrega: '' });
+  const [arquivoMapa, setArquivoMapa] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [enviandoMapa, setEnviandoMapa] = useState(false);
   const eventoSelecionado = eventos.find(e => e.id === formMapa.eventoId);
 
   const dataLimiteMinima = (dataEvento: string) => {
@@ -120,21 +131,37 @@ export default function CoordinatorDashboard() {
   };
 
   const uploadMapa = async () => {
-    if (!formMapa.eventoId || !formMapa.nomeArquivo || !formMapa.dataEntrega || !formMapa.enderecoEntrega || !usuario) return;
-    const ev = eventos.find(e => e.id === formMapa.eventoId);
-    await uploadMapaReferencia({
-      equipeId: usuario.equipeId ?? '',
-      ordemServicoId: ev?.ordemServicoId ?? '',
-      eventoId: formMapa.eventoId,
-      nomeArquivo: formMapa.nomeArquivo,
-      dataUpload: new Date().toISOString().slice(0, 10),
-      dataEntrega: formMapa.dataEntrega,
-      horaEntrega: formMapa.horaEntrega,
-      enderecoEntrega: formMapa.enderecoEntrega,
-      uploadPorId: usuario.id,
-    });
-    setModalMapa(false);
-    setFormMapa({ eventoId: '', nomeArquivo: '', dataEntrega: '', horaEntrega: '08:00', enderecoEntrega: '' });
+    if (!formMapa.eventoId || !arquivoMapa || !formMapa.dataEntrega || !formMapa.enderecoEntrega || !usuario) return;
+    setEnviandoMapa(true);
+    try {
+      const ev = eventos.find(e => e.id === formMapa.eventoId);
+      await uploadMapaReferencia({
+        equipeId: usuario.equipeId ?? '',
+        ordemServicoId: ev?.ordemServicoId ?? '',
+        eventoId: formMapa.eventoId,
+        nomeArquivo: arquivoMapa.name,
+        dataUpload: new Date().toISOString().slice(0, 10),
+        dataEntrega: formMapa.dataEntrega,
+        horaEntrega: formMapa.horaEntrega,
+        enderecoEntrega: formMapa.enderecoEntrega,
+        uploadPorId: usuario.id,
+      }, arquivoMapa);
+      mostrar('Mapa de referência enviado com sucesso!', 'sucesso');
+      setModalMapa(false);
+      setFormMapa({ eventoId: '', dataEntrega: '', horaEntrega: '08:00', enderecoEntrega: '' });
+      setArquivoMapa(null);
+    } catch (err) {
+      mostrar(err instanceof Error ? err.message : 'Erro ao enviar o mapa. Tente novamente.', 'erro');
+    } finally {
+      setEnviandoMapa(false);
+    }
+  };
+
+  const handleDropPdf = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file?.type === 'application/pdf') setArquivoMapa(file);
   };
 
   const mapaParaEvento = (eventoId: string) => mapaReferencia.find(m => m.eventoId === eventoId);
@@ -152,18 +179,7 @@ export default function CoordinatorDashboard() {
   const [papelPara, setPapelPara] = useState<UserRole>('membro');
 
   const aceitarMembro = async (solId: string) => {
-    const sol = solicitacoesAdesao.find(s => s.id === solId);
-    if (!sol) return;
     await aceitarSolicitacaoAdesao(solId);
-    const notif = {
-      id: `not-${Date.now()}`,
-      tipo: 'membro' as const,
-      mensagem: `${sol.usuarioNome} foi aceito no grupo ${equipeAtual?.nome ?? ''}.`,
-      timestamp: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(',', ' às'),
-      lida: false,
-      equipeId: usuario?.equipeId,
-    };
-    setNotificacoes([notif, ...notificacoes]);
   };
 
   const recusarMembro = async (solId: string) => {
@@ -200,9 +216,6 @@ export default function CoordinatorDashboard() {
     return n.tipo === filtroAlertas;
   });
 
-  const marcarLida = (id: string) => setNotificacoes(notificacoes.map(n => n.id === id ? { ...n, lida: true } : n));
-  const marcarTodasLidas = () => setNotificacoes(notificacoes.map(n => ({ ...n, lida: true })));
-  const removerNotificacao = (id: string) => setNotificacoes(notificacoes.filter(n => n.id !== id));
 
   const iconeNotif = (tipo: TipoNotificacao) => {
     if (tipo === 'membro') return <UserPlus className="h-5 w-5 text-indigo-500" />;
@@ -391,7 +404,8 @@ export default function CoordinatorDashboard() {
                       <div className="flex items-start gap-3 flex-wrap">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <h3 className="font-extrabold text-slate-900">{os.tipoPapel}</h3>
+                            <h3 className="font-extrabold text-slate-900">{os.nome ?? os.tipoPapel}</h3>
+                            <span className="text-xs font-semibold text-slate-400">{os.tipoPapel}</span>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${COR_STATUS_OS[os.status]}`}>{labelStatusOS(os.status)}</span>
                           </div>
                           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
@@ -640,7 +654,7 @@ export default function CoordinatorDashboard() {
                 <p className="text-xs text-slate-500 mt-0.5">Notificações da sua equipe.</p>
               </div>
               {naoLidas > 0 && (
-                <button onClick={marcarTodasLidas} className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#E63946] hover:bg-[#d62839] px-4 py-2.5 rounded-xl shadow transition-all">
+                <button onClick={() => { void marcarTodasNotificacoesLidas(); }} className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#E63946] hover:bg-[#d62839] px-4 py-2.5 rounded-xl shadow transition-all">
                   <Check className="h-4 w-4" />Marcar Todas Lidas ({naoLidas})
                 </button>
               )}
@@ -677,9 +691,9 @@ export default function CoordinatorDashboard() {
                   </div>
                   <div className="flex flex-col items-center gap-1 shrink-0">
                     {!n.lida && (
-                      <button onClick={() => marcarLida(n.id)} className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 hover:text-emerald-600 rounded text-[10px] font-bold shadow-sm">Lida</button>
+                      <button onClick={() => { void marcarNotificacaoLida(n.id); }} className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 hover:text-emerald-600 rounded text-[10px] font-bold shadow-sm">Lida</button>
                     )}
-                    <button onClick={() => removerNotificacao(n.id)} className="p-1.5 text-slate-400 hover:text-[#E63946] rounded-lg transition-colors"><Trash2 className="h-4 w-4" /></button>
+                    <button onClick={() => { void removerNotificacao(n.id); }} className="p-1.5 text-slate-400 hover:text-[#E63946] rounded-lg transition-colors"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 </div>
               ))}
@@ -691,10 +705,17 @@ export default function CoordinatorDashboard() {
       {/* Modal Nova O.S. */}
       <Modal aberto={modalOS} onFechar={() => setModalOS(false)} titulo="Nova Ordem de Serviço">
         <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Nome da O.S. <span className="text-slate-400 normal-case font-normal">(opcional)</span></label>
+            <input type="text" value={formOS.nome} onChange={e => setFormOS({ ...formOS, nome: e.target.value })} placeholder="Ex: Reunião Mensal Junho" className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Tipo de Papel</label>
-              <input type="text" value={formOS.tipoPapel} onChange={e => setFormOS({ ...formOS, tipoPapel: e.target.value })} placeholder="Ex: Couché 180g" className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]" />
+              <select value={formOS.tipoPapel} onChange={e => setFormOS({ ...formOS, tipoPapel: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]">
+                <option value="A4">A4</option>
+                <option value="A3">A3</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Número de Cópias</label>
@@ -713,13 +734,19 @@ export default function CoordinatorDashboard() {
           </div>
           {formOS.recorrencia === 'semanal' ? (
             <>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Dia da Semana</label>
-                <select value={formOS.diaSemana} onChange={e => setFormOS({ ...formOS, diaSemana: e.target.value as DiaSemana })} className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]">
-                  {(['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'] as DiaSemana[]).map(d => (
-                    <option key={d} value={d}>{labelDiaSemana(d)}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Dia da Semana</label>
+                  <select value={formOS.diaSemana} onChange={e => setFormOS({ ...formOS, diaSemana: e.target.value as DiaSemana })} className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]">
+                    {(['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'] as DiaSemana[]).map(d => (
+                      <option key={d} value={d}>{labelDiaSemana(d)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Data de Início</label>
+                  <input type="date" value={formOS.dataInicio} onChange={e => setFormOS({ ...formOS, dataInicio: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]" />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Número de Reuniões</label>
@@ -749,7 +776,7 @@ export default function CoordinatorDashboard() {
       </Modal>
 
       {/* Modal Upload Mapa */}
-      <Modal aberto={modalMapa} onFechar={() => { setModalMapa(false); setFormMapa({ eventoId: '', nomeArquivo: '', dataEntrega: '', horaEntrega: '08:00', enderecoEntrega: '' }); }} titulo="Enviar Mapa de Referência">
+      <Modal aberto={modalMapa} onFechar={() => { setModalMapa(false); setFormMapa({ eventoId: '', dataEntrega: '', horaEntrega: '08:00', enderecoEntrega: '' }); setArquivoMapa(null); }} titulo="Enviar Mapa de Referência">
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Reunião / Evento</label>
@@ -760,11 +787,45 @@ export default function CoordinatorDashboard() {
               ))}
             </select>
           </div>
+
+          {/* Drag & drop */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Arquivo do Mapa (PDF)</label>
-            <input type="text" value={formMapa.nomeArquivo} onChange={e => setFormMapa({ ...formMapa, nomeArquivo: e.target.value })} placeholder="nome_do_arquivo.pdf" className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]" />
-            <p className="text-xs text-slate-400 mt-1">Simulação: informe o nome do arquivo PDF</p>
+            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Arquivo PDF do Mapa</label>
+            <div
+              onDragOver={e => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={handleDropPdf}
+              onClick={() => document.getElementById('pdf-upload-input')?.click()}
+              className={`rounded-xl border-2 border-dashed p-5 text-center cursor-pointer transition-all select-none ${dragging ? 'border-[#E63946] bg-[#E63946]/5' : 'border-slate-200 hover:border-slate-300 bg-white/30'}`}
+            >
+              <input
+                id="pdf-upload-input"
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) setArquivoMapa(f); e.target.value = ''; }}
+              />
+              {arquivoMapa ? (
+                <div className="flex items-center justify-center gap-2">
+                  <FileText className="h-5 w-5 text-[#E63946] shrink-0" />
+                  <span className="text-sm font-semibold text-slate-700 truncate max-w-[220px]">{arquivoMapa.name}</span>
+                  <button
+                    onClick={e => { e.stopPropagation(); setArquivoMapa(null); }}
+                    className="text-slate-400 hover:text-[#E63946] transition ml-1"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Upload className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-slate-500">Arraste o PDF aqui ou clique para selecionar</p>
+                  <p className="text-xs text-slate-400 mt-1">Somente arquivos .pdf · até 20 MB</p>
+                </>
+              )}
+            </div>
           </div>
+
           {eventoSelecionado && (
             <>
               <div>
@@ -784,8 +845,8 @@ export default function CoordinatorDashboard() {
             <input type="text" value={formMapa.enderecoEntrega} onChange={e => setFormMapa({ ...formMapa, enderecoEntrega: e.target.value })} placeholder="Ex: Rua das Flores, 123 — São José dos Campos/SP" className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]" />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => { setModalMapa(false); setFormMapa({ eventoId: '', nomeArquivo: '', dataEntrega: '', horaEntrega: '08:00', enderecoEntrega: '' }); }} className="px-4 py-2 text-sm border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50">Cancelar</button>
-            <button onClick={uploadMapa} disabled={!formMapa.eventoId || !formMapa.nomeArquivo || !formMapa.dataEntrega || !formMapa.enderecoEntrega} className="px-5 py-2 text-sm font-bold bg-[#E63946] text-white rounded-xl hover:bg-[#d62839] disabled:opacity-40">Enviar</button>
+            <button onClick={() => { setModalMapa(false); setFormMapa({ eventoId: '', dataEntrega: '', horaEntrega: '08:00', enderecoEntrega: '' }); setArquivoMapa(null); }} className="px-4 py-2 text-sm border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50">Cancelar</button>
+            <button onClick={() => { void uploadMapa(); }} disabled={enviandoMapa || !formMapa.eventoId || !arquivoMapa || !formMapa.dataEntrega || !formMapa.enderecoEntrega} className="px-5 py-2 text-sm font-bold bg-[#E63946] text-white rounded-xl hover:bg-[#d62839] disabled:opacity-40">{enviandoMapa ? 'Enviando…' : 'Enviar'}</button>
           </div>
         </div>
       </Modal>
@@ -806,6 +867,8 @@ export default function CoordinatorDashboard() {
           </div>
         </div>
       </Modal>
+
+      <ToastContainer toasts={toasts} remover={removerToast} />
     </div>
   );
 }

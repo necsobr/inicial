@@ -62,7 +62,8 @@ class ServiceOrderController extends Controller
     {
         $data = $request->validate([
             'status' => ['sometimes', 'in:ativa,encerrada,cancelada'],
-            'paper_type' => ['sometimes', 'string'],
+            'name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'paper_type' => ['sometimes', 'in:A4,A3'],
             'copies' => ['nullable', 'integer', 'min:1'],
         ]);
 

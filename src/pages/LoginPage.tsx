@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, LogIn, Shield, BookOpen, Truck, Award, ArrowLeft, UserPlus, Phone, Building2, Users, PlusCircle, MapPin } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useStore } from '../contexts/StoreContext';
+import { equipeService } from '../services/storeService';
+import type { Equipe } from '../types';
 
 const atalhos = [
-  { label: 'ADM', email: 'admin@aiprint.com', icone: Shield, cor: 'bg-red-500/10 text-red-600 hover:bg-red-500/20' },
+  { label: 'ADM', email: 'admin@admin.com', icone: Shield, cor: 'bg-red-500/10 text-red-600 hover:bg-red-500/20' },
   { label: 'Coordenador', email: 'coordenador@aiprint.com', icone: BookOpen, cor: 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20' },
   { label: 'Trio', email: 'trio@aiprint.com', icone: Award, cor: 'bg-violet-500/10 text-violet-600 hover:bg-violet-500/20' },
   { label: 'Membro', email: 'membro@aiprint.com', icone: Award, cor: 'bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20' },
@@ -24,8 +25,12 @@ function rotaPorPapel(papel: string): string {
 
 export default function LoginPage() {
   const { login, registrar, registrarNovoGrupo } = useAuth();
-  const { equipes } = useStore();
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    equipeService.listar().then(setEquipes).catch(() => {});
+  }, []);
   const [modo, setModo] = useState<'login' | 'cadastro'>('login');
   const [modoRegistro, setModoRegistro] = useState<'equipe' | 'grupo'>('equipe');
 

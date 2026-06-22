@@ -10,6 +10,7 @@ use App\Models\ReferenceMap;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ReferenceMapController extends Controller
 {
@@ -18,7 +19,7 @@ class ReferenceMapController extends Controller
         $user = $request->user();
         $query = ReferenceMap::with('team', 'serviceOrder', 'event', 'uploader');
 
-        if (!$user->isAdmin()) {
+        if (!$user->isAdmin() && !$user->isProducao()) {
             $query->where('team_id', $user->team_id);
         }
 
@@ -33,12 +34,19 @@ class ReferenceMapController extends Controller
         $data['uploaded_by'] = $request->user()->id;
         $data['upload_date'] = now()->toDateString();
 
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $path = $file->store('reference-maps', 'public');
+            $data['file_name'] = $file->getClientOriginalName();
+            $data['file_path'] = $path;
+        }
+
         // Valida que delivery_date está entre 3 e 1 dias antes do evento
         $event = Event::findOrFail($data['event_id']);
         $eventDate = Carbon::parse($event->date);
         $deliveryDate = Carbon::parse($data['delivery_date']);
 
-        $diffDays = $eventDate->diffInDays($deliveryDate, false);
+        $diffDays = $deliveryDate->diffInDays($eventDate, false);
 
         if ($diffDays < 1 || $diffDays > 3) {
             return response()->json([
@@ -67,10 +75,11 @@ class ReferenceMapController extends Controller
     public function update(Request $request, ReferenceMap $referenceMap): JsonResponse
     {
         $data = $request->validate([
-            'file_name' => ['sometimes', 'string'],
-            'delivery_date' => ['sometimes', 'date'],
-            'delivery_time' => ['sometimes', 'date_format:H:i'],
+            'file_name'        => ['sometimes', 'string'],
+            'delivery_date'    => ['sometimes', 'date'],
+            'delivery_time'    => ['sometimes', 'date_format:H:i'],
             'delivery_address' => ['nullable', 'string'],
+            'status'           => ['sometimes', 'string', 'in:recebido,em_producao,pronto,entregue'],
         ]);
 
         $referenceMap->update($data);

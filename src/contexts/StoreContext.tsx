@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
 import type {
   Usuario, Equipe, Membro, Evento, Palestrante,
   SolicitacaoPatrocinio, RequisicaoImpressao, ConfiguracaoIntegracao, Notificacao,
   OrdemServico, SolicitacaoAdesao, MapaReferencia, EntradaFila, SolicitacaoCriacaoGrupo,
 } from '../types';
 import {
-  PALESTRANTES_PADRAO, SOLICITACOES_PADRAO, REQUISICOES_PADRAO,
+  PALESTRANTES_PADRAO,
 } from '../services/mockData';
 import {
   carregarDadosIniciais, carregarSolicitacoesCriacaoGrupo,
@@ -62,7 +63,7 @@ interface StoreContextType {
   atualizarIntegracao: (id: string, dados: Partial<ConfiguracaoIntegracao>) => Promise<void>;
   testarIntegracao: (id: string) => Promise<boolean>;
   criarOrdemServico: (dados: Partial<OrdemServico>) => Promise<OrdemServico>;
-  uploadMapaReferencia: (dados: Omit<MapaReferencia, 'id'>) => Promise<void>;
+  uploadMapaReferencia: (dados: Omit<MapaReferencia, 'id'>, arquivo?: File) => Promise<void>;
   entrarNaFila: (ordemServicoId: string) => Promise<void>;
   pagarFila: (id: string) => Promise<void>;
   recusarFila: (id: string) => Promise<void>;
@@ -77,8 +78,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [membros,      setMembros]      = useState<Membro[]>([]);
   const [eventos,      setEventos]      = useState<Evento[]>([]);
   const [palestrantes, setPalestrantes] = useState<Palestrante[]>(PALESTRANTES_PADRAO);
-  const [solicitacoes, setSolicitacoes] = useState<SolicitacaoPatrocinio[]>(SOLICITACOES_PADRAO);
-  const [requisicoes,  setRequisicoes]  = useState<RequisicaoImpressao[]>(REQUISICOES_PADRAO);
+  const [solicitacoes, setSolicitacoes] = useState<SolicitacaoPatrocinio[]>([]);
+  const [requisicoes,  setRequisicoes]  = useState<RequisicaoImpressao[]>([]);
   const [integracoes,  setIntegracoes]  = useState<ConfiguracaoIntegracao[]>([]);
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
   const [notificacoesTrio, setNotificacoesTrio] = useState<Notificacao[]>([]);
@@ -89,12 +90,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [solicitacoesCriacaoGrupo, setSolicitacoesCriacaoGrupo] = useState<SolicitacaoCriacaoGrupo[]>([]);
   const [carregando, setCarregando] = useState(false);
 
+  const { usuario } = useAuth();
+
   const recarregarDados = useCallback(async () => {
     if (!getToken()) return;
     setCarregando(true);
     try {
       const dados = await carregarDadosIniciais();
       setEquipes(dados.equipes);
+      setUsuarios(dados.usuarios);
       setMembros(dados.membros);
       setEventos(dados.eventos);
       setOrdensServico(dados.ordensServico);
@@ -102,6 +106,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setFilasOS(dados.filasOS);
       setSolicitacoesAdesao(dados.solicitacoesAdesao);
       setNotificacoesTrio(dados.notificacoesTrio);
+      setRequisicoes(dados.requisicoes);
+      setSolicitacoes(dados.solicitacoes);
 
       // Carregar usuários da equipe
       try {
@@ -123,8 +129,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    recarregarDados();
-  }, [recarregarDados]);
+    if (usuario) recarregarDados();
+  }, [usuario, recarregarDados]);
 
   // ── Ações ──────────────────────────────────────────────────────────────
 
@@ -193,8 +199,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return nova;
   };
 
-  const uploadMapaReferencia = async (dados: Omit<MapaReferencia, 'id'>) => {
-    const novo = await mapaReferenciaService.criar(dados);
+  const uploadMapaReferencia = async (dados: Omit<MapaReferencia, 'id'>, arquivo?: File) => {
+    const novo = await mapaReferenciaService.criar(dados, arquivo);
     setMapaReferencia(prev => [...prev, novo]);
   };
 

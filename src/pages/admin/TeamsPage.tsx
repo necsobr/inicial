@@ -3,11 +3,13 @@ import { Plus, Trash2, MapPin, Users, CheckCircle, XCircle, Building2, Phone, Pl
 import { useStore } from '../../contexts/StoreContext';
 import Modal from '../../components/Modal';
 import { formatarMoeda } from '../../utils/format';
-import type { Equipe, SolicitacaoCriacaoGrupo } from '../../types';
+import { equipeService } from '../../services/storeService';
+import type { SolicitacaoCriacaoGrupo } from '../../types';
 
 export default function TeamsPage() {
   const {
     equipes, setEquipes,
+    usuarios,
     solicitacoesCriacaoGrupo,
     aprovarCriacaoGrupo, rejeitarCriacaoGrupo,
   } = useStore();
@@ -16,26 +18,21 @@ export default function TeamsPage() {
 
   const pendentes = solicitacoesCriacaoGrupo.filter(s => s.status === 'pendente');
 
-  const salvar = () => {
+  const salvar = async () => {
     if (!form.nome) return;
-    const nova: Equipe = {
-      id: `eq-${Date.now()}`,
-      nome: form.nome,
-      regional: form.regional,
-      cidade: form.cidade,
-      gestoresIds: [],
-      stats: { totalMembros: 0, referenciasInternas: 0, referenciasExternas: 0, reunioes1a1: 0, convidados: 0, educacao: 0, negociosGeradosReais: 0 },
-      statsUltimoMes: { membrosAtivos: 0, referenciasInternas: 0, referenciasExternas: 0, reunioes1a1: 0, convidados: 0, negociosGeradosReais: 0 },
-      especialidadesAberto: [],
-      patrocinadores: [],
-    };
-    setEquipes([...equipes, nova]);
-    setForm({ nome: '', regional: '', cidade: '' });
-    setModalAberto(false);
+    try {
+      const nova = await equipeService.criar({ nome: form.nome, regional: form.regional, cidade: form.cidade });
+      setEquipes([...equipes, nova]);
+      setForm({ nome: '', regional: '', cidade: '' });
+      setModalAberto(false);
+    } catch {}
   };
 
-  const excluir = (id: string) => {
-    setEquipes(equipes.filter(e => e.id !== id));
+  const excluir = async (id: string) => {
+    try {
+      await equipeService.excluir(id);
+      setEquipes(equipes.filter(e => e.id !== id));
+    } catch {}
   };
 
   const aprovarCriacao = (sol: SolicitacaoCriacaoGrupo) => {
@@ -106,7 +103,7 @@ export default function TeamsPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => rejeitarCriacao(sol)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-red-600 hover:border-red-200 transition"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold border border-red-200 text-red-600 rounded-xl hover:bg-red-600 hover:text-white hover:border-red-600 hover:shadow-md transition-all"
                   >
                     <XCircle className="h-4 w-4" />
                     Recusar
