@@ -9,7 +9,7 @@ class NotificationService
 {
     public function __construct(private EvolutionService $evolutionService) {}
 
-    public function createForTeam(int $teamId, string $type, string $message): Notification
+    public function createForTeam(int $teamId, string $type, string $message, bool $sendWhatsapp = false): Notification
     {
         $notification = Notification::create([
             'team_id' => $teamId,
@@ -18,13 +18,15 @@ class NotificationService
             'read'    => false,
         ]);
 
-        $trio = User::where('team_id', $teamId)
-            ->where('role', 'trio')
-            ->whereNotNull('phone')
-            ->first();
+        if ($sendWhatsapp) {
+            $trio = User::where('team_id', $teamId)
+                ->where('role', 'trio')
+                ->whereNotNull('phone')
+                ->first();
 
-        if ($trio) {
-            $this->evolutionService->sendText($trio->phone, $message);
+            if ($trio) {
+                $this->evolutionService->sendText($trio->phone, $message);
+            }
         }
 
         return $notification;

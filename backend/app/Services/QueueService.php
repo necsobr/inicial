@@ -24,21 +24,22 @@ class QueueService
 
         $entry = QueueEntry::create([
             'service_order_id' => $serviceOrder->id,
-            'user_id' => $user->id,
-            'name' => $data['name'] ?? $user->name,
-            'company' => $data['company'] ?? $user->company,
-            'phone' => $data['phone'] ?? $user->phone,
-            'position' => $position,
-            'status' => 'aguardando',
-            'joined_at' => Carbon::now(),
-            'expires_at' => $expiresAt,
+            'user_id'          => $user->id,
+            'name'             => $data['name'] ?? $user->name,
+            'company'          => $data['company'] ?? $user->company,
+            'phone'            => $data['phone'] ?? $user->phone,
+            'position'         => $position,
+            'status'           => 'aguardando',
+            'joined_at'        => Carbon::now(),
+            'expires_at'       => $expiresAt,
         ]);
 
         if ($serviceOrder->team_id) {
             $this->notificationService->createForTeam(
                 $serviceOrder->team_id,
                 'patrocinador',
-                "{$entry->name} ({$entry->company}) entrou na fila da O.S. #{$serviceOrder->id} na posição {$position}."
+                "{$entry->name} ({$entry->company}) entrou na fila da O.S. #{$serviceOrder->id} na posição {$position}.",
+                true
             );
         }
 
@@ -48,6 +49,31 @@ class QueueService
     public function pay(QueueEntry $entry): QueueEntry
     {
         $entry->update(['status' => 'pago', 'expires_at' => null]);
+
+        $serviceOrder = $entry->serviceOrder;
+
+        if ($serviceOrder?->team_id) {
+            $this->notificationService->createForTeam(
+                $serviceOrder->team_id,
+                'patrocinador',
+                "{$entry->name} ({$entry->company}) confirmou o pagamento do patrocínio na O.S. #{$serviceOrder->id}.",
+                true
+            );
+
+            $slotsPagos = QueueEntry::where('service_order_id', $serviceOrder->id)
+                ->where('status', 'pago')
+                ->count();
+
+            if ($slotsPagos >= $serviceOrder->sponsor_slots) {
+                $this->notificationService->createForTeam(
+                    $serviceOrder->team_id,
+                    'patrocinador',
+                    "Todas as {$serviceOrder->sponsor_slots} vaga(s) de patrocínio da O.S. #{$serviceOrder->id} foram preenchidas!",
+                    true
+                );
+            }
+        }
+
         return $entry;
     }
 

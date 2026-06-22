@@ -71,7 +71,8 @@ class MembershipRequestController extends Controller
         $this->notificationService->createForTeam(
             $membershipRequest->team_id,
             'membro',
-            "{$user->name} foi aceito como membro da equipe."
+            "{$user->name} foi aceito como membro da equipe.",
+            true
         );
 
         return response()->json([
