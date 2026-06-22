@@ -14,6 +14,7 @@ class IntegrationResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'url' => $this->url,
+            'instanceName' => $this->instance_name,
             'active' => $this->active,
             'type' => $this->type,
             'createdAt' => $this->created_at?->toISOString(),

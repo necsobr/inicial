@@ -220,11 +220,12 @@ export const integracaoService = {
 
   async atualizar(id: string, dados: Partial<ConfiguracaoIntegracao>): Promise<ConfiguracaoIntegracao> {
     const res = await api.put<SingleResponse<ApiIntegration>>(`/integrations/${id}`, {
-      name:        dados.nome,
-      description: dados.descricao,
-      url:         dados.url,
-      api_key:     dados.chaveApi,
-      active:      dados.ativa,
+      name:          dados.nome,
+      description:   dados.descricao,
+      url:           dados.url,
+      api_key:       dados.chaveApi,
+      instance_name: dados.instancia,
+      active:        dados.ativa,
     });
     return mapIntegration(res.data);
   },

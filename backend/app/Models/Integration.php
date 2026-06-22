@@ -10,7 +10,7 @@ class Integration extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'description', 'url', 'api_key', 'active', 'type'];
+    protected $fillable = ['name', 'description', 'url', 'api_key', 'instance_name', 'active', 'type'];
 
     protected function casts(): array { return ['active' => 'boolean']; }
 

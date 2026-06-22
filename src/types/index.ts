@@ -150,6 +150,7 @@ export interface ConfiguracaoIntegracao {
   descricao: string;
   url: string;
   chaveApi: string;
+  instancia: string;
   ativa: boolean;
   tipo: TipoIntegracao;
 }

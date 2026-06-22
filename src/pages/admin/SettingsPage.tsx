@@ -48,6 +48,7 @@ export default function SettingsPage() {
   const [expandida, setExpandida] = useState<string | null>(integracoes[0]?.id ?? null);
   const [urls, setUrls] = useState<Record<string, string>>(Object.fromEntries(integracoes.map(i => [i.id, i.url])));
   const [chaves, setChaves] = useState<Record<string, string>>(Object.fromEntries(integracoes.map(i => [i.id, i.chaveApi])));
+  const [instancias, setInstancias] = useState<Record<string, string>>(Object.fromEntries(integracoes.map(i => [i.id, i.instancia])));
   const [mostrarChave, setMostrarChave] = useState<Record<string, boolean>>({});
   const [testando, setTestando] = useState<Record<string, boolean>>({});
   const [resultadoTeste, setResultadoTeste] = useState<Record<string, 'ok' | 'erro' | null>>({});
@@ -84,7 +85,11 @@ export default function SettingsPage() {
   const salvar = async () => {
     try {
       await Promise.all(integracoes.map(i =>
-        atualizarIntegracao(i.id, { url: urls[i.id] ?? i.url, chaveApi: chaves[i.id] ?? i.chaveApi })
+        atualizarIntegracao(i.id, {
+          url: urls[i.id] ?? i.url,
+          chaveApi: chaves[i.id] ?? i.chaveApi,
+          instancia: instancias[i.id] ?? i.instancia,
+        })
       ));
     } catch {}
     setSalvo(true);
@@ -189,6 +194,21 @@ export default function SettingsPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Nome da Instância (apenas WhatsApp) */}
+                  {int.tipo === 'whatsapp' && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Nome da Instância</label>
+                      <input
+                        type="text"
+                        placeholder="ex: aiprint-prod"
+                        value={instancias[int.id] ?? ''}
+                        onChange={e => setInstancias({ ...instancias, [int.id]: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm font-mono text-slate-700 outline-none focus:border-[#E63946] focus:bg-white transition"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">Nome da instância criada na Evolution API. As notificações de equipe serão enviadas ao número do trio via este canal.</p>
+                    </div>
+                  )}
 
                   {/* Ações */}
                   <div className="flex items-center gap-3 pt-2">

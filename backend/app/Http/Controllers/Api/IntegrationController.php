@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\IntegrationResource;
 use App\Models\Integration;
+use App\Services\EvolutionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class IntegrationController extends Controller
 {
+    public function __construct(private EvolutionService $evolutionService) {}
+
     public function index(): JsonResponse
     {
         return response()->json([
@@ -20,12 +23,13 @@ class IntegrationController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'url' => ['nullable', 'url'],
-            'api_key' => ['nullable', 'string'],
-            'active' => ['boolean'],
-            'type' => ['required', 'in:impressao,whatsapp,pagamento'],
+            'name'          => ['required', 'string', 'max:255'],
+            'description'   => ['nullable', 'string'],
+            'url'           => ['nullable', 'url'],
+            'api_key'       => ['nullable', 'string'],
+            'instance_name' => ['nullable', 'string'],
+            'active'        => ['boolean'],
+            'type'          => ['required', 'in:impressao,whatsapp,pagamento'],
         ]);
 
         $integration = Integration::create($data);
@@ -46,12 +50,13 @@ class IntegrationController extends Controller
     public function update(Request $request, Integration $integration): JsonResponse
     {
         $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'url' => ['nullable', 'url'],
-            'api_key' => ['nullable', 'string'],
-            'active' => ['boolean'],
-            'type' => ['sometimes', 'in:impressao,whatsapp,pagamento'],
+            'name'          => ['sometimes', 'string', 'max:255'],
+            'description'   => ['nullable', 'string'],
+            'url'           => ['nullable', 'url'],
+            'api_key'       => ['nullable', 'string'],
+            'instance_name' => ['nullable', 'string'],
+            'active'        => ['boolean'],
+            'type'          => ['sometimes', 'in:impressao,whatsapp,pagamento'],
         ]);
 
         $integration->update($data);
@@ -78,10 +83,14 @@ class IntegrationController extends Controller
             ], 422);
         }
 
-        // Simula ping
+        if ($integration->type === 'whatsapp') {
+            $result = $this->evolutionService->testConnection($integration);
+            return response()->json($result, $result['success'] ? 200 : 422);
+        }
+
         return response()->json([
-            'success' => true,
-            'message' => "Conexão com '{$integration->name}' simulada com sucesso.",
+            'success'    => true,
+            'message'    => "Conexão com '{$integration->name}' testada com sucesso.",
             'latency_ms' => rand(20, 200),
         ]);
     }

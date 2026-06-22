@@ -69,7 +69,7 @@ export interface ApiNotification {
 
 export interface ApiIntegration {
   id: number; name: string; description: string; url: string;
-  apiKey?: string; active: boolean; type: string;
+  apiKey?: string; instanceName?: string; active: boolean; type: string;
 }
 
 export interface ApiPrintRequest {
@@ -261,6 +261,7 @@ export function mapIntegration(i: ApiIntegration): ConfiguracaoIntegracao {
     descricao: i.description,
     url: i.url,
     chaveApi: i.apiKey ?? '',
+    instancia: i.instanceName ?? '',
     ativa: i.active,
     tipo: i.type as ConfiguracaoIntegracao['tipo'],
   };
