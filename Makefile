@@ -1,4 +1,4 @@
-.PHONY: up up-prod down install migrate seed fresh deploy deploy-rebuild deploy-first \
+.PHONY: up up-prod down install migrate seed seed-test seed-real fresh deploy deploy-rebuild deploy-first \
         build lint preview send db thinker shell _deploy-full
 
 COMPOSE      = docker compose
@@ -43,6 +43,11 @@ seed:
 
 seed-teste:
 	$(COMPOSE) run --rm app php artisan db:seed --class=TestQueueTransferSeeder
+seed-test:
+	$(COMPOSE) run --rm app php artisan db:seed --class=TestAcessoSeeder
+
+seed-real:
+	$(COMPOSE) run --rm app php artisan db:seed --class=SimulacaoRealSeeder
 
 fresh:
 	$(COMPOSE) run --rm app php artisan migrate:fresh --seed

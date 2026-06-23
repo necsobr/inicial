@@ -97,7 +97,7 @@ export default function MembroDashboard() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F8F9FA]">
+    <div className="min-h-full bg-[#F8F9FA]">
       {/* Header */}
       <div className="relative bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-6">
         <div className="blob -top-20 right-0 opacity-30 pointer-events-none" />
@@ -123,7 +123,7 @@ export default function MembroDashboard() {
       </div>
 
       {/* Abas */}
-      <div className="sticky top-16 z-20 bg-white border-b border-slate-200 shadow-sm">
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex gap-1 py-2">
             {[
