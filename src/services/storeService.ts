@@ -238,6 +238,30 @@ export const integracaoService = {
       return false;
     }
   },
+
+  async conectarWhatsApp(id: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      return await api.post<{ success: boolean; message?: string }>(`/integrations/${id}/connect`);
+    } catch {
+      return { success: false, message: 'Não foi possível conectar à Evolution API.' };
+    }
+  },
+
+  async buscarQrCode(id: string): Promise<{ qr: string | null }> {
+    try {
+      return await api.get<{ qr: string | null }>(`/integrations/${id}/qr`);
+    } catch {
+      return { qr: null };
+    }
+  },
+
+  async statusWhatsApp(id: string): Promise<{ connected: boolean; state: string }> {
+    try {
+      return await api.get<{ connected: boolean; state: string }>(`/integrations/${id}/whatsapp-status`);
+    } catch {
+      return { connected: false, state: 'error' };
+    }
+  },
 };
 
 // ── Usuários ──────────────────────────────────────────────────────────────

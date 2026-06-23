@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Calendar, ListOrdered, ChevronLeft, ChevronRight,
   Clock, MapPin, Users, DollarSign, CheckCircle, Timer,
-  AlertCircle, Plus, X, Crown, ArrowLeft
+  AlertCircle, Plus, X, Crown, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStore } from '../../contexts/StoreContext';
@@ -105,10 +105,10 @@ export default function MembroDashboard() {
           {(usuario?.papel === 'trio' || usuario?.papel === 'coordenador') && (
             <button
               onClick={() => navigate(usuario.papel === 'trio' ? '/trio' : '/coordenador')}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#E63946] mb-3 transition"
+              className="flex items-center gap-1.5 text-xs font-bold text-[#E63946] hover:text-[#d62839] mb-3 transition"
             >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Voltar ao painel {usuario.papel === 'trio' ? 'do trio' : 'do coordenador'}
+              Ir para o painel {usuario.papel === 'trio' ? 'do trio' : 'do coordenador'}
+              <ArrowRight className="h-3.5 w-3.5" />
             </button>
           )}
           <p className="text-xs font-bold text-[#E63946] uppercase tracking-wider mb-1">{equipeAtual.regional}</p>

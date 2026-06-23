@@ -14,13 +14,9 @@ const atalhos = [
 ];
 
 function rotaPorPapel(papel: string): string {
-  switch (papel) {
-    case 'admin': return '/admin';
-    case 'coordenador': return '/coordenador';
-    case 'trio': return '/trio';
-    case 'producao': return '/producao';
-    default: return '/membro';
-  }
+  if (papel === 'admin') return '/admin';
+  if (papel === 'producao') return '/producao';
+  return '/membro';
 }
 
 export default function LoginPage() {

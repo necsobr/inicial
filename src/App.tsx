@@ -3,6 +3,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { StoreProvider } from './contexts/StoreContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import type { UserRole } from './types';
+
+function rotaPadrao(papel: UserRole): string {
+  if (papel === 'admin') return '/admin';
+  if (papel === 'producao') return '/producao';
+  return '/membro';
+}
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -46,14 +53,23 @@ function AppRoutes() {
 
       <main className="flex-1 flex flex-col">
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/"
+            element={
+              usuario
+                ? usuario.pendente
+                  ? <Navigate to="/pendente" replace />
+                  : <Navigate to={rotaPadrao(usuario.papel)} replace />
+                : <LandingPage />
+            }
+          />
           <Route
             path="/login"
             element={
               usuario
                 ? usuario.pendente
                   ? <Navigate to="/pendente" replace />
-                  : <Navigate to="/" replace />
+                  : <Navigate to={rotaPadrao(usuario.papel)} replace />
                 : <LoginPage />
             }
           />
@@ -128,7 +144,14 @@ function AppRoutes() {
             }
           />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route
+            path="*"
+            element={
+              usuario
+                ? <Navigate to={rotaPadrao(usuario.papel)} replace />
+                : <Navigate to="/" replace />
+            }
+          />
         </Routes>
       </main>
     </div>

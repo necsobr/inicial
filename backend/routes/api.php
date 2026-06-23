@@ -75,6 +75,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('integrations', IntegrationController::class);
         Route::post('/integrations/{integration}/test', [IntegrationController::class, 'test']);
+        Route::post('/integrations/{integration}/connect', [IntegrationController::class, 'connect']);
+        Route::get('/integrations/{integration}/qr', [IntegrationController::class, 'qrCode']);
+        Route::get('/integrations/{integration}/whatsapp-status', [IntegrationController::class, 'whatsappStatus']);
     });
 
     // Solicitações de patrocínio

@@ -66,6 +66,9 @@ interface StoreContextType {
   removerNotificacao: (id: string) => Promise<void>;
   atualizarIntegracao: (id: string, dados: Partial<ConfiguracaoIntegracao>) => Promise<void>;
   testarIntegracao: (id: string) => Promise<boolean>;
+  conectarWhatsApp: (id: string) => Promise<{ success: boolean; message?: string }>;
+  buscarQrCode: (id: string) => Promise<{ qr: string | null }>;
+  statusWhatsApp: (id: string) => Promise<{ connected: boolean; state: string }>;
   criarOrdemServico: (dados: Partial<OrdemServico>) => Promise<OrdemServico>;
   uploadMapaReferencia: (dados: Omit<MapaReferencia, 'id'>, arquivo?: File) => Promise<void>;
   entrarNaFila: (ordemServicoId: string) => Promise<void>;
@@ -193,6 +196,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const testarIntegracao = (id: string) => integracaoService.testar(id);
+  const conectarWhatsApp = (id: string) => integracaoService.conectarWhatsApp(id);
+  const buscarQrCode     = (id: string) => integracaoService.buscarQrCode(id);
+  const statusWhatsApp   = (id: string) => integracaoService.statusWhatsApp(id);
 
   const criarOrdemServico = async (dados: Partial<OrdemServico>): Promise<OrdemServico> => {
     const nova = await ordemServicoService.criar(dados);
@@ -258,6 +264,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       removerNotificacao,
       atualizarIntegracao,
       testarIntegracao,
+      conectarWhatsApp,
+      buscarQrCode,
+      statusWhatsApp,
       criarOrdemServico,
       uploadMapaReferencia,
       entrarNaFila,
