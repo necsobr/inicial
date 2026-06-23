@@ -52,7 +52,7 @@ export default function ProductionDashboard() {
   const naFila = mapaReferencia.filter(m => m.status !== 'entregue').length;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F8F9FA]">
+    <div className="min-h-full bg-[#F8F9FA]">
       <div className="relative bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-8">
         <div className="blob -top-20 right-0 opacity-30 pointer-events-none" />
         <div className="max-w-7xl mx-auto flex items-start justify-between gap-4 flex-wrap">

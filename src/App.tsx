@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { StoreProvider } from './contexts/StoreContext';
 import Navbar from './components/Navbar';
@@ -24,6 +24,14 @@ import UserProfile from './pages/UserProfile';
 
 function AppRoutes() {
   const { usuario, carregando } = useAuth();
+  const { pathname } = useLocation();
+  const semNavbar = pathname.startsWith('/admin');
+  const ehAppPage = semNavbar ||
+    pathname.startsWith('/coordenador') ||
+    pathname.startsWith('/membro') ||
+    pathname.startsWith('/trio') ||
+    pathname.startsWith('/producao') ||
+    pathname.startsWith('/perfil');
 
   if (carregando) {
     return (
@@ -37,14 +45,14 @@ function AppRoutes() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#F8F9FA] overflow-x-hidden selection:bg-[#E63946] selection:text-white flex flex-col">
-      <div className="blob -top-40 -left-40 opacity-70 pointer-events-none" />
-      <div className="blob top-1/2 right-0 opacity-40 pointer-events-none" />
-      <div className="blob -bottom-40 left-10 opacity-50 pointer-events-none" />
+    <div className={`relative selection:bg-[#E63946] selection:text-white flex flex-col ${ehAppPage ? 'h-screen overflow-hidden bg-white' : 'min-h-screen bg-[#F8F9FA] overflow-x-hidden'}`}>
+      {!ehAppPage && <div className="blob -top-40 -left-40 opacity-70 pointer-events-none" />}
+      {!ehAppPage && <div className="blob top-1/2 right-0 opacity-40 pointer-events-none" />}
+      {!ehAppPage && <div className="blob -bottom-40 left-10 opacity-50 pointer-events-none" />}
 
-      <Navbar />
+      {!semNavbar && <Navbar />}
 
-      <main className="flex-1 flex flex-col">
+      <main className={`flex-1 flex flex-col${ehAppPage ? ' overflow-y-auto' : ''}`}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route
