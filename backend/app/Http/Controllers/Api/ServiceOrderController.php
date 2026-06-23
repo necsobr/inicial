@@ -6,13 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ServiceOrder\StoreServiceOrderRequest;
 use App\Http\Resources\ServiceOrderResource;
 use App\Models\ServiceOrder;
+use App\Services\QueueService;
 use App\Services\ServiceOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ServiceOrderController extends Controller
 {
-    public function __construct(private ServiceOrderService $serviceOrderService) {}
+    public function __construct(
+        private ServiceOrderService $serviceOrderService,
+        private QueueService $queueService,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -67,7 +71,14 @@ class ServiceOrderController extends Controller
             'copies' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        $oldStatus = $serviceOrder->status;
         $serviceOrder->update($data);
+
+        $newStatus = $serviceOrder->status;
+        $closing = in_array($newStatus, ['encerrada', 'cancelada']);
+        if ($closing && $oldStatus === 'ativa') {
+            $this->queueService->transferOnClose($serviceOrder);
+        }
 
         return response()->json([
             'data' => new ServiceOrderResource($serviceOrder->fresh('team', 'creator')),

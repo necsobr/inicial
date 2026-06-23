@@ -37,7 +37,7 @@ function AppRoutes() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#F8F9FA] overflow-x-hidden selection:bg-[#E63946] selection:text-white flex flex-col">
+    <div className="relative min-h-screen bg-[#F8F9FA] selection:bg-[#E63946] selection:text-white flex flex-col">
       <div className="blob -top-40 -left-40 opacity-70 pointer-events-none" />
       <div className="blob top-1/2 right-0 opacity-40 pointer-events-none" />
       <div className="blob -bottom-40 left-10 opacity-50 pointer-events-none" />
@@ -46,7 +46,16 @@ function AppRoutes() {
 
       <main className="flex-1 flex flex-col">
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/"
+            element={
+              usuario
+                ? usuario.pendente
+                  ? <Navigate to="/pendente" replace />
+                  : <Navigate to={usuario.papel === 'admin' ? '/admin' : usuario.papel === 'producao' ? '/producao' : '/membro'} replace />
+                : <LandingPage />
+            }
+          />
           <Route
             path="/login"
             element={
