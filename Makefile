@@ -41,6 +41,8 @@ migrate:
 seed:
 	$(COMPOSE) run --rm app php artisan db:seed
 
+seed-teste:
+	$(COMPOSE) run --rm app php artisan db:seed --class=TestQueueTransferSeeder
 seed-test:
 	$(COMPOSE) run --rm app php artisan db:seed --class=TestAcessoSeeder
 

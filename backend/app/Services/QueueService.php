@@ -84,6 +84,81 @@ class QueueService
         return $entry;
     }
 
+    public function transferOnClose(ServiceOrder $closingOrder): void
+    {
+        $pending = QueueEntry::where('service_order_id', $closingOrder->id)
+            ->whereNotIn('status', ['pago', 'recusado', 'expirado'])
+            ->with('user')
+            ->orderBy('position')
+            ->get();
+
+        if ($pending->isEmpty()) return;
+
+        $nextOS = ServiceOrder::where('team_id', $closingOrder->team_id)
+            ->where('id', '!=', $closingOrder->id)
+            ->where('status', 'ativa')
+            ->where('start_date', '>', now()->toDateString())
+            ->orderBy('start_date')
+            ->first();
+
+        // Sem próxima O.S.: apenas expira as entradas
+        if (!$nextOS) {
+            QueueEntry::where('service_order_id', $closingOrder->id)
+                ->whereNotIn('status', ['pago', 'recusado', 'expirado'])
+                ->update(['status' => 'expirado']);
+            return;
+        }
+
+        // Filtra apenas usuários que ainda não estão na próxima O.S.
+        $toTransfer = $pending->filter(function ($entry) use ($nextOS) {
+            return !QueueEntry::where('service_order_id', $nextOS->id)
+                ->where('user_id', $entry->user_id)
+                ->whereNotIn('status', ['recusado', 'expirado'])
+                ->exists();
+        });
+
+        $count = $toTransfer->count();
+
+        if ($count > 0) {
+            // Abre espaço no topo da fila para os transferidos
+            QueueEntry::where('service_order_id', $nextOS->id)
+                ->whereNotIn('status', ['recusado', 'expirado'])
+                ->increment('position', $count);
+        }
+
+        $newPosition = 1;
+        foreach ($toTransfer as $entry) {
+            $withinSlots = $newPosition <= $nextOS->sponsor_slots;
+
+            QueueEntry::create([
+                'service_order_id' => $nextOS->id,
+                'user_id'          => $entry->user_id,
+                'name'             => $entry->name,
+                'company'          => $entry->company,
+                'phone'            => $entry->phone,
+                'position'         => $newPosition,
+                'status'           => 'aguardando',
+                'joined_at'        => Carbon::now(),
+                'expires_at'       => $withinSlots ? Carbon::now()->addDays(2) : null,
+            ]);
+
+            $newPosition++;
+        }
+
+        // Expira as entradas originais
+        QueueEntry::where('service_order_id', $closingOrder->id)
+            ->whereNotIn('status', ['pago', 'recusado', 'expirado'])
+            ->update(['status' => 'expirado']);
+
+        $names = $toTransfer->pluck('name')->join(', ');
+        $this->notificationService->createForTeam(
+            $nextOS->team_id,
+            'patrocinador',
+            "{$count} participante(s) transferido(s) da O.S. #{$closingOrder->id} para a O.S. #{$nextOS->id} com prioridade: {$names}.",
+            true
+        );
+    }
+
     private function advanceQueue(ServiceOrder $serviceOrder): void
     {
         $next = QueueEntry::where('service_order_id', $serviceOrder->id)
