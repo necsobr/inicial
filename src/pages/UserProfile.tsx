@@ -43,7 +43,7 @@ export default function UserProfile() {
   const iniciaisNome = nome.trim().substring(0, 2).toUpperCase() || 'US';
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#F8F9FA]">
+    <div className="min-h-full bg-[#F8F9FA]">
       <div className="relative bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-6">
         <div className="blob -top-20 right-0 opacity-30 pointer-events-none" />
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
