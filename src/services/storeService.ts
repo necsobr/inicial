@@ -238,6 +238,21 @@ export const integracaoService = {
       return false;
     }
   },
+
+  async obterQrCode(id: string): Promise<{ success: boolean; connected?: boolean; qrcode?: string; pairingCode?: string; message?: string }> {
+    const res = await api.get<{ success: boolean; connected?: boolean; qrcode?: string; pairingCode?: string; message?: string }>(`/integrations/${id}/qrcode`);
+    return res;
+  },
+
+  async verificarConexao(id: string): Promise<{ success: boolean; connected: boolean; state?: string }> {
+    const res = await api.get<{ success: boolean; connected: boolean; state?: string }>(`/integrations/${id}/connection-state`);
+    return res;
+  },
+
+  async obterCodigoPareamento(id: string, phone: string): Promise<{ success: boolean; connected?: boolean; pairingCode?: string; message?: string }> {
+    const res = await api.post<{ success: boolean; connected?: boolean; pairingCode?: string; message?: string }>(`/integrations/${id}/pairing-code`, { phone });
+    return res;
+  },
 };
 
 // ── Usuários ──────────────────────────────────────────────────────────────

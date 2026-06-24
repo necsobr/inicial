@@ -52,11 +52,38 @@ services:
       MYSQL_PASSWORD: secret
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - aiprint
+
+  evolution:
+    image: evoapicloud/evolution-api:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_URL=http://localhost:8080
+      - AUTHENTICATION_API_KEY=aiprint-evolution-key
+      - DATABASE_PROVIDER=mysql
+      - DATABASE_CONNECTION_URI=mysql://aiprint:secret@mysql:3306/evolution
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/1
+      - CACHE_REDIS_PREFIX_KEY=evo
+      - CACHE_REDIS_SAVE_INSTANCES=true
+      - DEL_INSTANCE=false
+      - LOG_LEVEL=ERROR
+      - WA_VERSION_FETCH_ON_STARTUP=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - evolution_instances:/evolution/instances
     networks:
       - aiprint
 
@@ -77,3 +104,4 @@ networks:
 volumes:
   node_modules:
   mysql_data:
+  evolution_instances:

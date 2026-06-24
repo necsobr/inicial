@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Printer, MessageCircle, CreditCard, CheckCircle, XCircle,
   Eye, EyeOff, Copy, Zap, Save, ChevronDown, ChevronUp,
-  Wifi, WifiOff, AlertCircle
+  Wifi, WifiOff, AlertCircle, QrCode, RefreshCw, Link
 } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
+import { integracaoService } from '../../services/storeService';
 import type { TipoIntegracao } from '../../types';
 
 const CONFIG_TIPO: Record<TipoIntegracao, {
@@ -54,6 +55,15 @@ export default function SettingsPage() {
   const [resultadoTeste, setResultadoTeste] = useState<Record<string, 'ok' | 'erro' | null>>({});
   const [copiado, setCopiado] = useState<string | null>(null);
   const [salvo, setSalvo] = useState(false);
+  const [qrCode, setQrCode] = useState<Record<string, string | null>>({});
+  const [qrCarregando, setQrCarregando] = useState<Record<string, boolean>>({});
+  const [qrErro, setQrErro] = useState<Record<string, string | null>>({});
+  const [whatsappConectado, setWhatsappConectado] = useState<Record<string, boolean>>({});
+  const pollingRef = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+  const [metodo, setMetodo] = useState<Record<string, 'qr' | 'codigo'>>({});
+  const [telefone, setTelefone] = useState<Record<string, string>>({});
+  const [pairingCode, setPairingCode] = useState<Record<string, string | null>>({});
+  const [pairingCarregando, setPairingCarregando] = useState<Record<string, boolean>>({});
 
   const toggleAtiva = async (id: string) => {
     const int = integracoes.find(i => i.id === id);
@@ -80,6 +90,82 @@ export default function SettingsPage() {
     navigator.clipboard.writeText(chaves[id] ?? '').catch(() => {});
     setCopiado(id);
     setTimeout(() => setCopiado(null), 2000);
+  };
+
+  const pararPolling = (id: string) => {
+    if (pollingRef.current[id]) {
+      clearInterval(pollingRef.current[id]);
+      delete pollingRef.current[id];
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      Object.values(pollingRef.current).forEach(clearInterval);
+    };
+  }, []);
+
+  const iniciarPollingConexao = (id: string) => {
+    pararPolling(id);
+    pollingRef.current[id] = setInterval(async () => {
+      try {
+        const res = await integracaoService.verificarConexao(id);
+        if (res.connected) {
+          setWhatsappConectado(prev => ({ ...prev, [id]: true }));
+          setQrCode(prev => ({ ...prev, [id]: null }));
+          pararPolling(id);
+        }
+      } catch {}
+    }, 3000);
+  };
+
+  const gerarQrCode = async (id: string) => {
+    setQrCarregando(prev => ({ ...prev, [id]: true }));
+    setQrErro(prev => ({ ...prev, [id]: null }));
+    setQrCode(prev => ({ ...prev, [id]: null }));
+    setWhatsappConectado(prev => ({ ...prev, [id]: false }));
+    pararPolling(id);
+    try {
+      const res = await integracaoService.obterQrCode(id);
+      if (res.connected) {
+        setWhatsappConectado(prev => ({ ...prev, [id]: true }));
+      } else if (res.qrcode) {
+        setQrCode(prev => ({ ...prev, [id]: res.qrcode! }));
+        iniciarPollingConexao(id);
+      } else {
+        setQrErro(prev => ({ ...prev, [id]: res.message ?? 'Não foi possível gerar o QR code.' }));
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Erro ao buscar QR code.';
+      setQrErro(prev => ({ ...prev, [id]: msg }));
+    } finally {
+      setQrCarregando(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const gerarCodigoPareamento = async (id: string) => {
+    const phone = telefone[id] ?? '';
+    if (!phone.trim()) return;
+    setPairingCarregando(prev => ({ ...prev, [id]: true }));
+    setPairingCode(prev => ({ ...prev, [id]: null }));
+    setQrErro(prev => ({ ...prev, [id]: null }));
+    pararPolling(id);
+    try {
+      const res = await integracaoService.obterCodigoPareamento(id, phone);
+      if (res.connected) {
+        setWhatsappConectado(prev => ({ ...prev, [id]: true }));
+      } else if (res.pairingCode) {
+        setPairingCode(prev => ({ ...prev, [id]: res.pairingCode! }));
+        iniciarPollingConexao(id);
+      } else {
+        setQrErro(prev => ({ ...prev, [id]: res.message ?? 'Não foi possível gerar o código.' }));
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Erro ao gerar código.';
+      setQrErro(prev => ({ ...prev, [id]: msg }));
+    } finally {
+      setPairingCarregando(prev => ({ ...prev, [id]: false }));
+    }
   };
 
   const salvar = async () => {
@@ -247,11 +333,106 @@ export default function SettingsPage() {
                     </div>
                   )}
 
-                  {/* Info específica por tipo */}
+                  {/* Conexão WhatsApp */}
                   {int.tipo === 'whatsapp' && (
-                    <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-xs text-green-700">
-                      <p className="font-bold mb-1">Evolution API — WhatsApp</p>
-                      <p>Esta integração utiliza a Evolution API para enviar notificações automáticas via WhatsApp para o coordenador e o trio. Configure a URL da sua instância Evolution e a chave de API gerada no painel.</p>
+                    <div className="space-y-3">
+                      <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-xs text-green-700">
+                        <p className="font-bold mb-1">Evolution API — WhatsApp</p>
+                        <p>Configure URL, API Key e nome da instância acima. Depois escolha como vincular o número.</p>
+                      </div>
+
+                      {whatsappConectado[int.id] ? (
+                        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm font-semibold text-emerald-700">
+                          <CheckCircle className="h-5 w-5 shrink-0" />
+                          WhatsApp conectado com sucesso!
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {/* Seletor de método */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => { setMetodo(p => ({ ...p, [int.id]: 'qr' })); setPairingCode(p => ({ ...p, [int.id]: null })); setQrErro(p => ({ ...p, [int.id]: null })); }}
+                              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition ${(metodo[int.id] ?? 'qr') === 'qr' ? 'bg-green-100 border-green-400 text-green-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                            >
+                              <QrCode className="h-3.5 w-3.5" /> QR Code
+                            </button>
+                            <button
+                              onClick={() => { setMetodo(p => ({ ...p, [int.id]: 'codigo' })); setQrCode(p => ({ ...p, [int.id]: null })); setQrErro(p => ({ ...p, [int.id]: null })); pararPolling(int.id); }}
+                              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition ${metodo[int.id] === 'codigo' ? 'bg-green-100 border-green-400 text-green-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                            >
+                              <Link className="h-3.5 w-3.5" /> Código por número
+                            </button>
+                          </div>
+
+                          {/* QR Code */}
+                          {(metodo[int.id] ?? 'qr') === 'qr' && (
+                            <div className="space-y-3">
+                              <button
+                                onClick={() => gerarQrCode(int.id)}
+                                disabled={qrCarregando[int.id]}
+                                className="flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {qrCarregando[int.id] ? <RefreshCw className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+                                {qrCarregando[int.id] ? 'Gerando...' : qrCode[int.id] ? 'Atualizar QR code' : 'Gerar QR code'}
+                              </button>
+                              {qrCode[int.id] && (
+                                <div className="rounded-xl border border-green-200 bg-white p-4 flex flex-col items-center gap-3">
+                                  <p className="text-xs font-semibold text-green-700">Escaneie com o WhatsApp para conectar</p>
+                                  <img src={qrCode[int.id]!} alt="QR Code WhatsApp" className="w-52 h-52 rounded-lg border border-slate-200" />
+                                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                                    <RefreshCw className="h-3 w-3 animate-spin" /> Aguardando conexão...
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Código por número */}
+                          {metodo[int.id] === 'codigo' && (
+                            <div className="space-y-3">
+                              <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-700">
+                                <p className="font-bold mb-1">Como usar</p>
+                                <p>Digite o número do WhatsApp que vai vincular → clique em gerar → no celular vá em <strong>Dispositivos conectados → Vincular com número de telefone</strong> → insira o código.</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="tel"
+                                  placeholder="11999999999"
+                                  value={telefone[int.id] ?? ''}
+                                  onChange={e => setTelefone(p => ({ ...p, [int.id]: e.target.value }))}
+                                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm font-mono text-slate-700 outline-none focus:border-[#E63946] focus:bg-white transition"
+                                />
+                                <button
+                                  onClick={() => gerarCodigoPareamento(int.id)}
+                                  disabled={pairingCarregando[int.id] || !(telefone[int.id] ?? '').trim()}
+                                  className="flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 transition disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                                >
+                                  {pairingCarregando[int.id] ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Link className="h-4 w-4" />}
+                                  {pairingCarregando[int.id] ? 'Gerando...' : 'Gerar código'}
+                                </button>
+                              </div>
+                              {pairingCode[int.id] && (
+                                <div className="rounded-xl border border-green-200 bg-white p-4 flex flex-col items-center gap-2">
+                                  <p className="text-xs font-semibold text-green-700">Digite este código no WhatsApp</p>
+                                  <div className="text-3xl font-extrabold tracking-[0.3em] text-slate-900 font-mono bg-slate-50 border border-slate-200 rounded-xl px-6 py-3">
+                                    {pairingCode[int.id]}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                                    <RefreshCw className="h-3 w-3 animate-spin" /> Aguardando conexão...
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {qrErro[int.id] && (
+                            <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700">
+                              <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                              <span>{qrErro[int.id]}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                   {int.tipo === 'pagamento' && (
