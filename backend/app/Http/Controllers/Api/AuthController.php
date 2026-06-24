@@ -118,6 +118,23 @@ class AuthController extends Controller
         return response()->json(['message' => 'Usuário removido com sucesso.']);
     }
 
+    public function impersonate(Request $request, User $user): JsonResponse
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Acesso negado.'], 403);
+        }
+
+        $token = $user->createToken('impersonation')->plainTextToken;
+
+        return response()->json([
+            'data' => [
+                'user' => new UserResource($user->load('team')),
+                'token' => $token,
+            ],
+            'message' => 'Sessão iniciada como ' . $user->name . '.',
+        ]);
+    }
+
     public function changeRole(Request $request, User $user): JsonResponse
     {
         $request->validate([

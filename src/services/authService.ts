@@ -1,4 +1,4 @@
-import { api, saveToken, clearToken } from './api';
+import { api, saveToken, clearToken, getToken, getAdminToken, saveAdminToken, clearAdminToken } from './api';
 import { mapUser, type ApiUser } from './mappers';
 import type { Usuario } from '../types';
 
@@ -73,6 +73,23 @@ export const authService = {
 
   async alterarPapel(usuarioId: string, novoPapel: string): Promise<Usuario> {
     const res = await api.put<UserResponse>(`/users/${usuarioId}/role`, { role: novoPapel });
+    return mapUser(res.data);
+  },
+
+  async loginAs(usuarioId: string): Promise<{ usuario: Usuario; token: string }> {
+    const current = getToken();
+    if (current) saveAdminToken(current);
+    const res = await api.post<LoginResponse>(`/users/${usuarioId}/impersonate`);
+    saveToken(res.data.token);
+    return { usuario: mapUser(res.data.user), token: res.data.token };
+  },
+
+  async exitLoginAs(): Promise<Usuario> {
+    const adminToken = getAdminToken();
+    if (!adminToken) throw new Error('Nenhuma sessão de admin salva.');
+    saveToken(adminToken);
+    clearAdminToken();
+    const res = await api.get<UserResponse>('/auth/me');
     return mapUser(res.data);
   },
 };

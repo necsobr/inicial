@@ -1,5 +1,6 @@
 const BASE = '/api';
 const TOKEN_KEY = 'aiprint_token';
+const ADMIN_TOKEN_KEY = 'aiprint_token_admin';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -11,6 +12,18 @@ export function saveToken(token: string): void {
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+}
+
+export function getAdminToken(): string | null {
+  return localStorage.getItem(ADMIN_TOKEN_KEY);
+}
+
+export function saveAdminToken(token: string): void {
+  localStorage.setItem(ADMIN_TOKEN_KEY, token);
+}
+
+export function clearAdminToken(): void {
+  localStorage.removeItem(ADMIN_TOKEN_KEY);
 }
 
 class ApiError extends Error {

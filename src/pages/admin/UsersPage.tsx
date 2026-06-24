@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Edit, Trash2, CheckCircle, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Edit, Trash2, CheckCircle, Search, LogIn } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
+import { useAuth } from '../../contexts/AuthContext';
 import Modal from '../../components/Modal';
 import { labelPapel } from '../../utils/format';
 import { usuarioService } from '../../services/storeService';
@@ -25,6 +27,8 @@ const badgePapel: Record<string, string> = {
 
 export default function UsersPage() {
   const { usuarios, setUsuarios, equipes } = useStore();
+  const { usuario: usuarioAtual, loginAs } = useAuth();
+  const navigate = useNavigate();
   const [busca, setBusca] = useState('');
   const [filtroPapel, setFiltroPapel] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
@@ -69,6 +73,11 @@ export default function UsersPage() {
       await usuarioService.excluir(id);
       setUsuarios(usuarios.filter(u => u.id !== id));
     } catch {}
+  };
+
+  const entrarComo = async (u: Usuario) => {
+    const novoUsuario = await loginAs(u.id);
+    if (novoUsuario) navigate('/');
   };
 
   return (
@@ -150,9 +159,12 @@ export default function UsersPage() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex justify-center gap-2">
-                      <button onClick={() => abrirEditar(u)} className="text-indigo-500 hover:text-indigo-700 p-1"><Edit className="h-4 w-4" /></button>
-                      <button onClick={() => alternarStatus(u)} className="text-emerald-500 hover:text-emerald-700 p-1"><CheckCircle className="h-4 w-4" /></button>
-                      <button onClick={() => excluir(u.id)} className="text-[#E63946] hover:text-red-700 p-1"><Trash2 className="h-4 w-4" /></button>
+                      <button onClick={() => abrirEditar(u)} title="Editar" className="text-indigo-500 hover:text-indigo-700 p-1"><Edit className="h-4 w-4" /></button>
+                      <button onClick={() => alternarStatus(u)} title={u.ativo ? 'Desativar' : 'Ativar'} className="text-emerald-500 hover:text-emerald-700 p-1"><CheckCircle className="h-4 w-4" /></button>
+                      {usuarioAtual?.id !== u.id && (
+                        <button onClick={() => entrarComo(u)} title="Entrar como este usuário" className="text-slate-400 hover:text-slate-700 p-1"><LogIn className="h-4 w-4" /></button>
+                      )}
+                      <button onClick={() => excluir(u.id)} title="Excluir" className="text-[#E63946] hover:text-red-700 p-1"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </td>
                 </tr>

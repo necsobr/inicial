@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { StoreProvider } from './contexts/StoreContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import { LogOut } from 'lucide-react';
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -21,6 +22,33 @@ import MembroDashboard from './pages/membro/MembroDashboard';
 import TrioDashboard from './pages/trio/TrioDashboard';
 import ProductionDashboard from './pages/production/ProductionDashboard';
 import UserProfile from './pages/UserProfile';
+
+function ImpersonationBanner() {
+  const { usuario, impersonando, exitLoginAs } = useAuth();
+  const navigate = useNavigate();
+
+  if (!impersonando || !usuario) return null;
+
+  const handleExit = async () => {
+    await exitLoginAs();
+    navigate('/admin');
+  };
+
+  return (
+    <div className="sticky top-0 z-50 flex items-center justify-between gap-4 bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-900 shadow-md">
+      <span>
+        Você está visualizando como <strong>{usuario.nome}</strong> ({usuario.email})
+      </span>
+      <button
+        onClick={handleExit}
+        className="flex items-center gap-1.5 rounded-lg bg-amber-900/15 px-3 py-1 hover:bg-amber-900/25 transition-colors whitespace-nowrap"
+      >
+        <LogOut className="h-3.5 w-3.5" />
+        Voltar para minha conta
+      </button>
+    </div>
+  );
+}
 
 function AppRoutes() {
   const { usuario, carregando } = useAuth();
@@ -50,6 +78,7 @@ function AppRoutes() {
       {!ehAppPage && <div className="blob top-1/2 right-0 opacity-40 pointer-events-none" />}
       {!ehAppPage && <div className="blob -bottom-40 left-10 opacity-50 pointer-events-none" />}
 
+      <ImpersonationBanner />
       <Navbar />
 
       <main className={`flex-1 flex flex-col${ehAppPage ? ' overflow-y-auto' : ''}`}>

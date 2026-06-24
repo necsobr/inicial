@@ -91,4 +91,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{user}', [AuthController::class, 'update']);
     Route::delete('/users/{user}', [AuthController::class, 'destroy']);
     Route::put('/users/{user}/role', [AuthController::class, 'changeRole']);
+    Route::post('/users/{user}/impersonate', [AuthController::class, 'impersonate']);
 });

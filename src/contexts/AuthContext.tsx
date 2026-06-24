@@ -1,17 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Usuario, UserRole } from '../types';
-import { getToken } from '../services/api';
+import { getToken, getAdminToken } from '../services/api';
 import { authService } from '../services/authService';
 
 interface AuthContextType {
   usuario: Usuario | null;
   carregando: boolean;
+  impersonando: boolean;
   login: (email: string, senha: string) => Promise<Usuario | null>;
   logout: () => Promise<void>;
   registrar: (dados: { nome: string; empresa: string; email: string; telefone: string; equipeId: string }) => Promise<Usuario | null>;
   registrarNovoGrupo: (dados: { nome: string; empresa: string; email: string; telefone: string; nomeGrupo: string; regional: string; cidade: string }) => Promise<Usuario | null>;
   atualizarPerfil: (dados: Partial<Pick<Usuario, 'nome' | 'email' | 'telefone' | 'empresa'>>) => Promise<void>;
   alterarPapel: (usuarioId: string, novoPapel: UserRole) => Promise<void>;
+  loginAs: (usuarioId: string) => Promise<Usuario | null>;
+  exitLoginAs: () => Promise<void>;
   setUsuario: (u: Usuario | null) => void;
 }
 
@@ -20,6 +23,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [impersonando, setImpersonando] = useState(() => !!getAdminToken());
 
   useEffect(() => {
     const token = getToken();
@@ -83,11 +87,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authService.alterarPapel(usuarioId, novoPapel);
   };
 
+  const loginAs = async (usuarioId: string): Promise<Usuario | null> => {
+    try {
+      const { usuario: u } = await authService.loginAs(usuarioId);
+      setUsuario(u);
+      setImpersonando(true);
+      return u;
+    } catch {
+      return null;
+    }
+  };
+
+  const exitLoginAs = async (): Promise<void> => {
+    const u = await authService.exitLoginAs();
+    setUsuario(u);
+    setImpersonando(false);
+  };
+
   return (
     <AuthContext.Provider value={{
-      usuario, carregando, login, logout,
+      usuario, carregando, impersonando, login, logout,
       registrar, registrarNovoGrupo,
-      atualizarPerfil, alterarPapel, setUsuario,
+      atualizarPerfil, alterarPapel, loginAs, exitLoginAs, setUsuario,
     }}>
       {children}
     </AuthContext.Provider>
