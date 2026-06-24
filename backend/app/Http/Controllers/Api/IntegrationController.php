@@ -94,4 +94,35 @@ class IntegrationController extends Controller
             'latency_ms' => rand(20, 200),
         ]);
     }
+
+    public function qrCode(Integration $integration): JsonResponse
+    {
+        if ($integration->type !== 'whatsapp') {
+            return response()->json(['success' => false, 'message' => 'Apenas integrações WhatsApp suportam QR code.'], 422);
+        }
+
+        $result = $this->evolutionService->getQrCode($integration);
+        return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    public function pairingCode(Request $request, Integration $integration): JsonResponse
+    {
+        if ($integration->type !== 'whatsapp') {
+            return response()->json(['success' => false, 'message' => 'Apenas integrações WhatsApp.'], 422);
+        }
+
+        $data = $request->validate(['phone' => ['required', 'string']]);
+        $result = $this->evolutionService->getPairingCode($integration, $data['phone']);
+        return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    public function connectionState(Integration $integration): JsonResponse
+    {
+        if ($integration->type !== 'whatsapp') {
+            return response()->json(['success' => false, 'connected' => false], 422);
+        }
+
+        $result = $this->evolutionService->connectionState($integration);
+        return response()->json($result);
+    }
 }

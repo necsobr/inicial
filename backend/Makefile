@@ -1,5 +1,4 @@
 .PHONY: install migrate seed fresh key test lint
-
 install:
 	composer install
 
