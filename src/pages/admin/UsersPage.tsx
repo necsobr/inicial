@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Edit, Trash2, CheckCircle, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Edit, Trash2, CheckCircle, Search, LogIn } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
+import { useAuth } from '../../contexts/AuthContext';
 import Modal from '../../components/Modal';
 import { labelPapel } from '../../utils/format';
 import { usuarioService } from '../../services/storeService';
@@ -9,11 +11,17 @@ import type { Usuario, UserRole } from '../../types';
 interface FormData {
   nome: string;
   email: string;
+  telefone: string;
+  empresa: string;
   papel: UserRole;
   equipeId: string;
+  ativo: boolean;
 }
 
-const formVazio: FormData = { nome: '', email: '', papel: 'coordenador', equipeId: '' };
+const formVazio: FormData = {
+  nome: '', email: '', telefone: '', empresa: '',
+  papel: 'coordenador', equipeId: '', ativo: true,
+};
 
 const badgePapel: Record<string, string> = {
   admin: 'bg-red-100 text-red-700',
@@ -25,12 +33,16 @@ const badgePapel: Record<string, string> = {
 
 export default function UsersPage() {
   const { usuarios, setUsuarios, equipes } = useStore();
+  const { usuario: usuarioAtual, loginAs } = useAuth();
+  const navigate = useNavigate();
   const [busca, setBusca] = useState('');
   const [filtroPapel, setFiltroPapel] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<Usuario | null>(null);
   const [form, setForm] = useState<FormData>(formVazio);
+  const [salvando, setSalvando] = useState(false);
+  const [erroEmail, setErroEmail] = useState('');
 
   const filtrados = usuarios.filter(u => {
     const buscaOk = !busca || u.nome.toLowerCase().includes(busca.toLowerCase()) || u.email.toLowerCase().includes(busca.toLowerCase());
@@ -41,20 +53,42 @@ export default function UsersPage() {
 
   const abrirEditar = (u: Usuario) => {
     setEditando(u);
-    setForm({ nome: u.nome, email: u.email, papel: u.papel, equipeId: u.equipeId ?? '' });
+    setErroEmail('');
+    setForm({
+      nome: u.nome,
+      email: u.email,
+      telefone: u.telefone ?? '',
+      empresa: u.empresa ?? '',
+      papel: u.papel,
+      equipeId: u.equipeId ?? '',
+      ativo: u.ativo,
+    });
     setModalAberto(true);
   };
 
   const salvar = async () => {
     if (!editando) return;
+    setErroEmail('');
+    setSalvando(true);
     try {
       const atualizado = await usuarioService.atualizar(editando.id, {
+        nome: form.nome || undefined,
+        email: form.email || undefined,
+        telefone: form.telefone || null,
+        empresa: form.empresa || null,
         papel: form.papel,
         equipeId: form.equipeId || null,
+        ativo: form.ativo,
       });
       setUsuarios(usuarios.map(u => u.id === editando.id ? atualizado : u));
       setModalAberto(false);
-    } catch {}
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message.toLowerCase().includes('email')) {
+        setErroEmail('Este e-mail já está em uso.');
+      }
+    } finally {
+      setSalvando(false);
+    }
   };
 
   const alternarStatus = async (u: Usuario) => {
@@ -69,6 +103,11 @@ export default function UsersPage() {
       await usuarioService.excluir(id);
       setUsuarios(usuarios.filter(u => u.id !== id));
     } catch {}
+  };
+
+  const entrarComo = async (u: Usuario) => {
+    const novoUsuario = await loginAs(u.id);
+    if (novoUsuario) navigate('/');
   };
 
   return (
@@ -150,9 +189,12 @@ export default function UsersPage() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex justify-center gap-2">
-                      <button onClick={() => abrirEditar(u)} className="text-indigo-500 hover:text-indigo-700 p-1"><Edit className="h-4 w-4" /></button>
-                      <button onClick={() => alternarStatus(u)} className="text-emerald-500 hover:text-emerald-700 p-1"><CheckCircle className="h-4 w-4" /></button>
-                      <button onClick={() => excluir(u.id)} className="text-[#E63946] hover:text-red-700 p-1"><Trash2 className="h-4 w-4" /></button>
+                      <button onClick={() => abrirEditar(u)} title="Editar" className="text-indigo-500 hover:text-indigo-700 p-1"><Edit className="h-4 w-4" /></button>
+                      <button onClick={() => alternarStatus(u)} title={u.ativo ? 'Desativar' : 'Ativar'} className="text-emerald-500 hover:text-emerald-700 p-1"><CheckCircle className="h-4 w-4" /></button>
+                      {usuarioAtual?.id !== u.id && (
+                        <button onClick={() => entrarComo(u)} title="Entrar como este usuário" className="text-slate-400 hover:text-slate-700 p-1"><LogIn className="h-4 w-4" /></button>
+                      )}
+                      <button onClick={() => excluir(u.id)} title="Excluir" className="text-[#E63946] hover:text-red-700 p-1"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -164,6 +206,53 @@ export default function UsersPage() {
 
       <Modal aberto={modalAberto} onFechar={() => setModalAberto(false)} titulo="Editar Usuário">
         <div className="space-y-4">
+          {/* Nome */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Nome</label>
+            <input
+              type="text"
+              value={form.nome}
+              onChange={e => setForm({ ...form, nome: e.target.value })}
+              className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]"
+            />
+          </div>
+
+          {/* E-mail */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">E-mail</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={e => { setForm({ ...form, email: e.target.value }); setErroEmail(''); }}
+              className={`w-full rounded-xl border py-2.5 px-3 text-sm outline-none transition ${erroEmail ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-slate-200 bg-white/50 focus:border-[#E63946]'}`}
+            />
+            {erroEmail && <p className="text-xs text-red-600 mt-1">{erroEmail}</p>}
+          </div>
+
+          {/* Telefone + Empresa */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Telefone</label>
+              <input
+                type="tel"
+                value={form.telefone}
+                onChange={e => setForm({ ...form, telefone: e.target.value })}
+                placeholder="11999999999"
+                className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Empresa</label>
+              <input
+                type="text"
+                value={form.empresa}
+                onChange={e => setForm({ ...form, empresa: e.target.value })}
+                className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]"
+              />
+            </div>
+          </div>
+
+          {/* Papel */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Papel</label>
             <select
@@ -178,6 +267,8 @@ export default function UsersPage() {
               <option value="producao">Produção</option>
             </select>
           </div>
+
+          {/* Equipe */}
           {(form.papel === 'coordenador' || form.papel === 'trio' || form.papel === 'membro') && (
             <div>
               <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Equipe</label>
@@ -191,9 +282,28 @@ export default function UsersPage() {
               </select>
             </div>
           )}
+
+          {/* Status */}
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, ativo: !form.ativo })}
+              className={`relative h-6 w-11 rounded-full transition-all duration-300 ${form.ativo ? 'bg-emerald-500' : 'bg-slate-300'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 bg-white rounded-full shadow transition-all duration-300 ${form.ativo ? 'left-5' : 'left-0.5'}`} />
+            </button>
+            <span className="text-sm font-semibold text-slate-600">{form.ativo ? 'Ativo' : 'Inativo'}</span>
+          </div>
+
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setModalAberto(false)} className="px-4 py-2 text-sm border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50">Cancelar</button>
-            <button onClick={salvar} className="px-5 py-2 text-sm font-bold bg-[#E63946] text-white rounded-xl hover:bg-[#d62839]">Salvar</button>
+            <button
+              onClick={salvar}
+              disabled={salvando}
+              className="px-5 py-2 text-sm font-bold bg-[#E63946] text-white rounded-xl hover:bg-[#d62839] disabled:opacity-60"
+            >
+              {salvando ? 'Salvando...' : 'Salvar'}
+            </button>
           </div>
         </div>
       </Modal>

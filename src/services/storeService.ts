@@ -12,7 +12,7 @@ import type {
   Equipe, Membro, Evento, OrdemServico, MapaReferencia,
   EntradaFila, SolicitacaoAdesao, SolicitacaoCriacaoGrupo,
   Notificacao, ConfiguracaoIntegracao, Usuario, UserRole,
-  RequisicaoImpressao, SolicitacaoPatrocinio,
+  RequisicaoImpressao, SolicitacaoPatrocinio, TemplateMensagem,
 } from '../types';
 
 interface ListResponse<T> { data: T[] }
@@ -253,6 +253,27 @@ export const integracaoService = {
     const res = await api.post<{ success: boolean; connected?: boolean; pairingCode?: string; message?: string }>(`/integrations/${id}/pairing-code`, { phone });
     return res;
   },
+
+  async enviarMensagemTeste(id: string, phone: string, message: string): Promise<{ success: boolean; message: string }> {
+    return api.post<{ success: boolean; message: string }>(`/integrations/${id}/send-test`, { phone, message });
+  },
+};
+
+// ── Templates de Mensagens ────────────────────────────────────────────────
+
+interface ApiTemplate { id: number; key: string; name: string; description: string | null; body: string; }
+
+export const templateService = {
+  async listar(): Promise<TemplateMensagem[]> {
+    const res = await api.get<ListResponse<ApiTemplate>>('/message-templates');
+    return res.data.map(t => ({ id: String(t.id), key: t.key, name: t.name, description: t.description, body: t.body }));
+  },
+
+  async atualizar(id: string, body: string): Promise<TemplateMensagem> {
+    const res = await api.put<SingleResponse<ApiTemplate>>(`/message-templates/${id}`, { body });
+    const t = res.data;
+    return { id: String(t.id), key: t.key, name: t.name, description: t.description, body: t.body };
+  },
 };
 
 // ── Usuários ──────────────────────────────────────────────────────────────
@@ -263,8 +284,15 @@ export const usuarioService = {
     return res.data.map(mapUser);
   },
 
-  async atualizar(id: string, dados: { papel?: string; equipeId?: string | null; ativo?: boolean }): Promise<Usuario> {
+  async atualizar(id: string, dados: {
+    nome?: string; email?: string; telefone?: string | null; empresa?: string | null;
+    papel?: string; equipeId?: string | null; ativo?: boolean;
+  }): Promise<Usuario> {
     const res = await api.put<SingleResponse<ApiUser>>(`/users/${id}`, {
+      name:    dados.nome,
+      email:   dados.email,
+      phone:   dados.telefone,
+      company: dados.empresa,
       role:    dados.papel,
       team_id: dados.equipeId ? Number(dados.equipeId) : dados.equipeId === null ? null : undefined,
       active:  dados.ativo,

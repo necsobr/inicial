@@ -91,12 +91,16 @@ class AuthController extends Controller
         }
 
         $request->validate([
+            'name'    => ['sometimes', 'string', 'max:255'],
+            'email'   => ['sometimes', 'email', 'unique:users,email,' . $user->id],
+            'phone'   => ['sometimes', 'nullable', 'string', 'max:20'],
+            'company' => ['sometimes', 'nullable', 'string', 'max:255'],
             'role'    => ['sometimes', 'in:admin,coordenador,trio,membro,producao'],
             'team_id' => ['sometimes', 'nullable', 'exists:teams,id'],
             'active'  => ['sometimes', 'boolean'],
         ]);
 
-        $user->update($request->only(['role', 'team_id', 'active']));
+        $user->update($request->only(['name', 'email', 'phone', 'company', 'role', 'team_id', 'active']));
 
         return response()->json([
             'data' => new UserResource($user->fresh('team')),

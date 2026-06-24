@@ -8,6 +8,29 @@ use Illuminate\Support\Facades\Log;
 
 class EvolutionService
 {
+    public function sendTextViaIntegration(Integration $integration, string $phone, string $message): void
+    {
+        if (!$integration->url || !$integration->api_key || !$integration->instance_name) {
+            return;
+        }
+
+        $number = preg_replace('/\D/', '', $phone);
+        if (strlen($number) <= 11) {
+            $number = '55' . $number;
+        }
+
+        try {
+            Http::withHeaders(['apikey' => $integration->api_key])
+                ->timeout(10)
+                ->post("{$integration->url}/message/sendText/{$integration->instance_name}", [
+                    'number' => $number,
+                    'text'   => $message,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('EvolutionService: falha ao enviar WhatsApp', ['phone' => $number, 'error' => $e->getMessage()]);
+        }
+    }
+
     public function sendText(string $phone, string $message): void
     {
         $integration = Integration::where('type', 'whatsapp')
