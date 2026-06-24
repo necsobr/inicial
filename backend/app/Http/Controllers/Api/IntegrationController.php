@@ -116,6 +116,25 @@ class IntegrationController extends Controller
         return response()->json($result, $result['success'] ? 200 : 422);
     }
 
+    public function sendTest(Request $request, Integration $integration): JsonResponse
+    {
+        if ($integration->type !== 'whatsapp') {
+            return response()->json(['success' => false, 'message' => 'Apenas integrações WhatsApp.'], 422);
+        }
+
+        $data = $request->validate([
+            'phone'   => ['required', 'string'],
+            'message' => ['required', 'string', 'max:2000'],
+        ]);
+
+        try {
+            $this->evolutionService->sendTextViaIntegration($integration, $data['phone'], $data['message']);
+            return response()->json(['success' => true, 'message' => 'Mensagem de teste enviada.']);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function connectionState(Integration $integration): JsonResponse
     {
         if ($integration->type !== 'whatsapp') {

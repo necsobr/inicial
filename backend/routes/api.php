@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\IntegrationController;
 use App\Http\Controllers\Api\SponsorshipRequestController;
 use App\Http\Controllers\Api\PrintRequestController;
+use App\Http\Controllers\Api\MessageTemplateController;
 use Illuminate\Support\Facades\Route;
 
 // Rotas públicas
@@ -75,9 +76,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('integrations', IntegrationController::class);
         Route::post('/integrations/{integration}/test', [IntegrationController::class, 'test']);
+        Route::post('/integrations/{integration}/send-test', [IntegrationController::class, 'sendTest']);
         Route::get('/integrations/{integration}/qrcode', [IntegrationController::class, 'qrCode']);
         Route::post('/integrations/{integration}/pairing-code', [IntegrationController::class, 'pairingCode']);
         Route::get('/integrations/{integration}/connection-state', [IntegrationController::class, 'connectionState']);
+
+        Route::get('/message-templates', [MessageTemplateController::class, 'index']);
+        Route::put('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'update']);
     });
 
     // Solicitações de patrocínio

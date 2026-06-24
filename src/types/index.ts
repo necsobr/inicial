@@ -195,6 +195,14 @@ export interface EntradaFila {
   dataExpiracao?: string;
 }
 
+export interface TemplateMensagem {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  body: string;
+}
+
 export interface SolicitacaoCriacaoGrupo {
   id: string;
   usuarioId: string;

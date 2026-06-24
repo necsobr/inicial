@@ -12,7 +12,7 @@ import type {
   Equipe, Membro, Evento, OrdemServico, MapaReferencia,
   EntradaFila, SolicitacaoAdesao, SolicitacaoCriacaoGrupo,
   Notificacao, ConfiguracaoIntegracao, Usuario, UserRole,
-  RequisicaoImpressao, SolicitacaoPatrocinio,
+  RequisicaoImpressao, SolicitacaoPatrocinio, TemplateMensagem,
 } from '../types';
 
 interface ListResponse<T> { data: T[] }
@@ -252,6 +252,33 @@ export const integracaoService = {
   async obterCodigoPareamento(id: string, phone: string): Promise<{ success: boolean; connected?: boolean; pairingCode?: string; message?: string }> {
     const res = await api.post<{ success: boolean; connected?: boolean; pairingCode?: string; message?: string }>(`/integrations/${id}/pairing-code`, { phone });
     return res;
+  },
+
+  async enviarMensagemTeste(id: string, phone: string, message: string): Promise<{ success: boolean; message: string }> {
+    const res = await api.post<{ success: boolean; message: string }>(`/integrations/${id}/send-test`, { phone, message });
+    return res;
+  },
+};
+
+// ── Templates de Mensagens ────────────────────────────────────────────────
+
+interface ApiTemplate {
+  id: number; key: string; name: string; description: string | null; body: string;
+}
+
+function mapTemplate(t: ApiTemplate): TemplateMensagem {
+  return { id: String(t.id), key: t.key, name: t.name, description: t.description, body: t.body };
+}
+
+export const templateService = {
+  async listar(): Promise<TemplateMensagem[]> {
+    const res = await api.get<ListResponse<ApiTemplate>>('/message-templates');
+    return res.data.map(mapTemplate);
+  },
+
+  async atualizar(id: string, body: string): Promise<TemplateMensagem> {
+    const res = await api.put<SingleResponse<ApiTemplate>>(`/message-templates/${id}`, { body });
+    return mapTemplate(res.data);
   },
 };
 
