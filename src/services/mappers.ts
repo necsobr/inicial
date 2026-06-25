@@ -78,6 +78,7 @@ export interface ApiIntegration {
   id: number; name: string; description: string; url: string;
   apiKey?: string; instanceName?: string; active: boolean; type: string;
   autoMessages?: { boasVindas?: string; notificacaoEvento?: string; confirmacaoPagamento?: string } | null;
+  config?: { padrao?: string; mapeamento_papel?: Record<string, string>; impressoras?: { chave: string; nome: string; descricao: string; ip: string; cups_nome?: string }[] } | null;
 }
 
 export interface ApiPrintRequest {
@@ -287,6 +288,17 @@ export function mapIntegration(i: ApiIntegration): ConfiguracaoIntegracao {
     ativa: i.active,
     tipo: i.type as ConfiguracaoIntegracao['tipo'],
     mensagensAutomaticas: i.autoMessages ?? undefined,
+    config: i.config ? {
+      padrao:          i.config.padrao,
+      mapeamentoPapel: i.config.mapeamento_papel,
+      impressoras:     i.config.impressoras?.map(p => ({
+        chave:    p.chave,
+        nome:     p.nome,
+        descricao: p.descricao,
+        ip:       p.ip,
+        cupsNome: p.cups_nome,
+      })),
+    } : undefined,
   };
 }
 

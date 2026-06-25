@@ -48,6 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Mapas de Referência
     Route::apiResource('reference-maps', ReferenceMapController::class);
+    Route::post('/reference-maps/{referenceMap}/print', [ReferenceMapController::class, 'print']);
 
     // Filas de OS
     Route::get('/queue-entries', [QueueEntryController::class, 'index']);

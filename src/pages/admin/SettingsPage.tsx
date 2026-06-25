@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Printer, MessageCircle, CreditCard, CheckCircle, XCircle,
   Eye, EyeOff, Copy, Zap, Save, ChevronDown, ChevronUp,
-  Wifi, WifiOff, AlertCircle, QrCode, RefreshCw, Link
+  Wifi, WifiOff, AlertCircle, QrCode, RefreshCw, Link, Star
 } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
 import { integracaoService } from '../../services/storeService';
-import type { TipoIntegracao } from '../../types';
+import type { TipoIntegracao, ImpressoraConfig } from '../../types';
 
 const CONFIG_TIPO: Record<TipoIntegracao, {
   icone: React.ComponentType<{ className?: string }>;
@@ -64,6 +64,10 @@ export default function SettingsPage() {
   const [telefone, setTelefone] = useState<Record<string, string>>({});
   const [pairingCode, setPairingCode] = useState<Record<string, string | null>>({});
   const [pairingCarregando, setPairingCarregando] = useState<Record<string, boolean>>({});
+  const [impressoras, setImpressoras] = useState<Record<string, ImpressoraConfig[]>>({});
+  const [padrao, setPadrao] = useState<Record<string, string>>({});
+  const [mapeamentoPapel, setMapeamentoPapel] = useState<Record<string, Record<string, string>>>({});
+  const [salvoImpressao, setSalvoImpressao] = useState(false);
 
 
   const toggleAtiva = async (id: string) => {
@@ -101,10 +105,46 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
+    const imp: Record<string, ImpressoraConfig[]> = {};
+    const pad: Record<string, string> = {};
+    const map: Record<string, Record<string, string>> = {};
+    integracoes.forEach(i => {
+      if (i.tipo === 'impressao' && i.config) {
+        imp[i.id] = i.config.impressoras ?? [];
+        pad[i.id] = i.config.padrao ?? '';
+        map[i.id] = i.config.mapeamentoPapel ?? {};
+      }
+    });
+    if (Object.keys(imp).length) {
+      setImpressoras(prev => ({ ...prev, ...imp }));
+      setPadrao(prev => ({ ...prev, ...pad }));
+      setMapeamentoPapel(prev => ({ ...prev, ...map }));
+    }
+  }, [integracoes]);
+
+  useEffect(() => {
     return () => {
       Object.values(pollingRef.current).forEach(clearInterval);
     };
   }, []);
+
+  const salvarImpressoras = async (id: string) => {
+    try {
+      await atualizarIntegracao(id, {
+        config: { padrao: padrao[id], mapeamentoPapel: mapeamentoPapel[id] ?? {}, impressoras: impressoras[id] ?? [] },
+      });
+      setSalvoImpressao(true);
+      setTimeout(() => setSalvoImpressao(false), 3000);
+    } catch {}
+  };
+
+  const atualizarImpressora = (intId: string, idx: number, campo: keyof ImpressoraConfig, valor: string) => {
+    setImpressoras(prev => {
+      const lista = [...(prev[intId] ?? [])];
+      lista[idx] = { ...lista[idx], [campo]: valor };
+      return { ...prev, [intId]: lista };
+    });
+  };
 
   const iniciarPollingConexao = (id: string) => {
     pararPolling(id);
@@ -440,6 +480,106 @@ export default function SettingsPage() {
                     <div className="rounded-xl bg-violet-50 border border-violet-200 p-3 text-xs text-violet-700">
                       <p className="font-bold mb-1">Asaas Pagamentos</p>
                       <p>Integração com Asaas para cobrança das cotas de patrocínio. Use a chave de API do ambiente de produção (aas_live_...) ou sandbox (aas_test_...) para testes.</p>
+                    </div>
+                  )}
+
+                  {int.tipo === 'impressao' && (
+                    <div className="space-y-4">
+                      <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-700">
+                        <p className="font-bold mb-1">Impressoras Epson na rede local</p>
+                        <p>Configure o IP de cada impressora. O sistema envia o PDF via protocolo IPP (porta 631) diretamente à impressora quando um mapa de referência entra em produção.</p>
+                      </div>
+                      {/* Mapeamento de papel */}
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                        <p className="text-xs font-bold text-slate-600 uppercase">Roteamento por tipo de papel</p>
+                        {['A4', 'A3'].map(papel => (
+                          <div key={papel} className="flex items-center gap-3">
+                            <span className="text-sm font-extrabold text-slate-800 w-8">{papel}</span>
+                            <span className="text-slate-400 text-xs">→</span>
+                            <select
+                              value={mapeamentoPapel[int.id]?.[papel] ?? ''}
+                              onChange={e => setMapeamentoPapel(prev => ({
+                                ...prev,
+                                [int.id]: { ...(prev[int.id] ?? {}), [papel]: e.target.value },
+                              }))}
+                              className="flex-1 rounded-xl border border-slate-200 bg-white py-2 px-3 text-sm text-slate-700 outline-none focus:border-[#E63946] transition"
+                            >
+                              <option value="">Impressora padrão</option>
+                              {(impressoras[int.id] ?? []).map(p => (
+                                <option key={p.chave} value={p.chave}>{p.nome}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+
+                      {(impressoras[int.id] ?? []).map((imp, idx) => (
+                        <div key={imp.chave} className={`rounded-xl border p-4 space-y-3 ${padrao[int.id] === imp.chave ? 'border-blue-300 bg-blue-50/60' : 'border-slate-200 bg-white'}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Printer className="h-4 w-4 text-blue-600" />
+                              <span className="font-bold text-sm text-slate-800">{imp.nome}</span>
+                              {padrao[int.id] === imp.chave && (
+                                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                                  <Star className="h-2.5 w-2.5" /> Padrão
+                                </span>
+                              )}
+                            </div>
+                            {padrao[int.id] !== imp.chave && (
+                              <button
+                                onClick={() => setPadrao(prev => ({ ...prev, [int.id]: imp.chave }))}
+                                className="text-[11px] font-bold text-blue-600 hover:text-blue-800 transition"
+                              >
+                                Definir como padrão
+                              </button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nome</label>
+                              <input
+                                type="text"
+                                value={imp.nome}
+                                onChange={e => atualizarImpressora(int.id, idx, 'nome', e.target.value)}
+                                className="w-full rounded-xl border border-slate-200 bg-white py-2 px-3 text-sm text-slate-700 outline-none focus:border-[#E63946] transition"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Endereço IP</label>
+                              <input
+                                type="text"
+                                value={imp.ip}
+                                onChange={e => atualizarImpressora(int.id, idx, 'ip', e.target.value)}
+                                className="w-full rounded-xl border border-slate-200 bg-white py-2 px-3 text-sm font-mono text-slate-700 outline-none focus:border-[#E63946] transition"
+                                placeholder="172.16.50.xxx"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Descrição</label>
+                            <input
+                              type="text"
+                              value={imp.descricao}
+                              onChange={e => atualizarImpressora(int.id, idx, 'descricao', e.target.value)}
+                              className="w-full rounded-xl border border-slate-200 bg-white py-2 px-3 text-sm text-slate-700 outline-none focus:border-[#E63946] transition"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => salvarImpressoras(int.id)}
+                          className="flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                        >
+                          <Save className="h-4 w-4" />
+                          Salvar impressoras
+                        </button>
+                        {salvoImpressao && (
+                          <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
+                            <CheckCircle className="h-4 w-4" /> Salvo!
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
