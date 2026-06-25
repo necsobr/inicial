@@ -20,6 +20,13 @@ class SponsorshipRequestResource extends JsonResource
             'applicantName' => $this->applicant_name,
             'requestedAt' => $this->requested_at?->toDateString(),
             'team' => $this->whenLoaded('team', fn() => new TeamResource($this->team)),
+            'billingType' => $this->billing_type,
+            'asaasPaymentId' => $this->asaas_payment_id,
+            'asaasPaymentStatus' => $this->asaas_payment_status,
+            'asaasBankSlipUrl' => $this->asaas_bank_slip_url,
+            'asaasInvoiceUrl' => $this->asaas_invoice_url,
+            'asaasPixQrcode' => $this->asaas_pix_qrcode,
+            'asaasPixCopyPaste' => $this->asaas_pix_copy_paste,
             'createdAt' => $this->created_at?->toISOString(),
             'updatedAt' => $this->updated_at?->toISOString(),
         ];

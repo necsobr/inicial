@@ -65,6 +65,7 @@ export default function SettingsPage() {
   const [pairingCode, setPairingCode] = useState<Record<string, string | null>>({});
   const [pairingCarregando, setPairingCarregando] = useState<Record<string, boolean>>({});
 
+
   const toggleAtiva = async (id: string) => {
     const int = integracoes.find(i => i.id === id);
     if (!int) return;
@@ -457,6 +458,7 @@ export default function SettingsPage() {
           Salvar Configurações
         </button>
       </div>
+
     </div>
   );
 }

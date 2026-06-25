@@ -129,6 +129,13 @@ export interface SolicitacaoPatrocinio {
   patrocinadorEmail: string;
   patrocinadorNome: string;
   dataSolicitacao: string;
+  billingType?: 'PIX' | 'BOLETO';
+  asaasPaymentId?: string;
+  asaasPaymentStatus?: string;
+  asaasBankSlipUrl?: string;
+  asaasInvoiceUrl?: string;
+  asaasPixQrcode?: string;
+  asaasPixCopyPaste?: string;
 }
 
 export interface RequisicaoImpressao {
@@ -144,6 +151,15 @@ export interface RequisicaoImpressao {
   dataCriacao: string;
 }
 
+export interface MensagensAutomaticasWhatsApp {
+  boasVindas?: string;
+  notificacaoEvento?: string;
+  confirmacaoPagamento?: string;
+  novaReferencia?: string;
+  entregaMapa?: string;
+  aprovacaoAdesao?: string;
+}
+
 export interface ConfiguracaoIntegracao {
   id: string;
   nome: string;
@@ -153,6 +169,7 @@ export interface ConfiguracaoIntegracao {
   instancia: string;
   ativa: boolean;
   tipo: TipoIntegracao;
+  mensagensAutomaticas?: MensagensAutomaticasWhatsApp;
 }
 
 export interface SolicitacaoAdesao {

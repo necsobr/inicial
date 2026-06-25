@@ -102,7 +102,7 @@ send:
 	echo "$(CYAN)▶ Abrindo Pull Request...$(RESET)"; \
 	gh pr create --title "$$msg" --body "Gerado automaticamente por make send." --base main; \
 	echo "$(CYAN)▶ Merge automático em main...$(RESET)"; \
-	gh pr merge --merge --delete-branch; \
+	gh pr merge --merge --delete-branch --admin; \
 	git checkout main; \
 	git pull origin main; \
 	echo "$(GREEN)✔ Enviado e merged com sucesso em main.$(RESET)"

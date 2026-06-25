@@ -57,6 +57,7 @@ class IntegrationController extends Controller
             'instance_name' => ['nullable', 'string'],
             'active'        => ['boolean'],
             'type'          => ['sometimes', 'in:impressao,whatsapp,pagamento'],
+            'auto_messages' => ['sometimes', 'nullable', 'array'],
         ]);
 
         $integration->update($data);
@@ -113,6 +114,21 @@ class IntegrationController extends Controller
 
         $data = $request->validate(['phone' => ['required', 'string']]);
         $result = $this->evolutionService->getPairingCode($integration, $data['phone']);
+        return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
+    public function sendMessage(Request $request, Integration $integration): JsonResponse
+    {
+        if ($integration->type !== 'whatsapp') {
+            return response()->json(['success' => false, 'message' => 'Apenas integrações WhatsApp.'], 422);
+        }
+
+        $data = $request->validate([
+            'phone'   => ['required', 'string'],
+            'message' => ['required', 'string', 'max:4096'],
+        ]);
+
+        $result = $this->evolutionService->sendTestMessage($integration, $data['phone'], $data['message']);
         return response()->json($result, $result['success'] ? 200 : 422);
     }
 

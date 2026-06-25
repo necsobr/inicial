@@ -1,19 +1,24 @@
 import { useState } from 'react';
-import { Edit, Trash2, CheckCircle, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Edit, Trash2, CheckCircle, Search, LogIn } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
+import { useAuth } from '../../contexts/AuthContext';
 import Modal from '../../components/Modal';
 import { labelPapel } from '../../utils/format';
 import { usuarioService } from '../../services/storeService';
+import { authService } from '../../services/authService';
 import type { Usuario, UserRole } from '../../types';
 
 interface FormData {
   nome: string;
   email: string;
+  telefone: string;
+  empresa: string;
   papel: UserRole;
   equipeId: string;
 }
 
-const formVazio: FormData = { nome: '', email: '', papel: 'coordenador', equipeId: '' };
+const formVazio: FormData = { nome: '', email: '', telefone: '', empresa: '', papel: 'coordenador', equipeId: '' };
 
 const badgePapel: Record<string, string> = {
   admin: 'bg-red-100 text-red-700',
@@ -23,8 +28,18 @@ const badgePapel: Record<string, string> = {
   producao: 'bg-amber-100 text-amber-700',
 };
 
+const rotaPorPapel: Record<string, string> = {
+  admin: '/admin',
+  coordenador: '/coordenador',
+  trio: '/trio',
+  membro: '/membro',
+  producao: '/producao',
+};
+
 export default function UsersPage() {
   const { usuarios, setUsuarios, equipes } = useStore();
+  const { setUsuario } = useAuth();
+  const navigate = useNavigate();
   const [busca, setBusca] = useState('');
   const [filtroPapel, setFiltroPapel] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
@@ -41,7 +56,14 @@ export default function UsersPage() {
 
   const abrirEditar = (u: Usuario) => {
     setEditando(u);
-    setForm({ nome: u.nome, email: u.email, papel: u.papel, equipeId: u.equipeId ?? '' });
+    setForm({
+      nome: u.nome,
+      email: u.email,
+      telefone: u.telefone ?? '',
+      empresa: u.empresa ?? '',
+      papel: u.papel,
+      equipeId: u.equipeId ?? '',
+    });
     setModalAberto(true);
   };
 
@@ -49,6 +71,10 @@ export default function UsersPage() {
     if (!editando) return;
     try {
       const atualizado = await usuarioService.atualizar(editando.id, {
+        nome: form.nome,
+        email: form.email,
+        telefone: form.telefone || undefined,
+        empresa: form.empresa || undefined,
         papel: form.papel,
         equipeId: form.equipeId || null,
       });
@@ -68,6 +94,15 @@ export default function UsersPage() {
     try {
       await usuarioService.excluir(id);
       setUsuarios(usuarios.filter(u => u.id !== id));
+    } catch {}
+  };
+
+  const loginComo = async (u: Usuario) => {
+    if (!confirm(`Logar como ${u.nome}?\n\nVocê será redirecionado para o painel deste usuário. Para voltar, faça logout e entre novamente com sua conta de administrador.`)) return;
+    try {
+      const { usuario: novo } = await authService.loginComo(u.id);
+      setUsuario(novo);
+      navigate(rotaPorPapel[novo.papel] ?? '/');
     } catch {}
   };
 
@@ -150,9 +185,10 @@ export default function UsersPage() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex justify-center gap-2">
-                      <button onClick={() => abrirEditar(u)} className="text-indigo-500 hover:text-indigo-700 p-1"><Edit className="h-4 w-4" /></button>
-                      <button onClick={() => alternarStatus(u)} className="text-emerald-500 hover:text-emerald-700 p-1"><CheckCircle className="h-4 w-4" /></button>
-                      <button onClick={() => excluir(u.id)} className="text-[#E63946] hover:text-red-700 p-1"><Trash2 className="h-4 w-4" /></button>
+                      <button onClick={() => loginComo(u)} className="text-slate-400 hover:text-slate-700 p-1" title="Login como este usuário"><LogIn className="h-4 w-4" /></button>
+                      <button onClick={() => abrirEditar(u)} className="text-indigo-500 hover:text-indigo-700 p-1" title="Editar"><Edit className="h-4 w-4" /></button>
+                      <button onClick={() => alternarStatus(u)} className="text-emerald-500 hover:text-emerald-700 p-1" title="Alternar status"><CheckCircle className="h-4 w-4" /></button>
+                      <button onClick={() => excluir(u.id)} className="text-[#E63946] hover:text-red-700 p-1" title="Excluir"><Trash2 className="h-4 w-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -164,6 +200,45 @@ export default function UsersPage() {
 
       <Modal aberto={modalAberto} onFechar={() => setModalAberto(false)} titulo="Editar Usuário">
         <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Nome</label>
+              <input
+                type="text"
+                value={form.nome}
+                onChange={e => setForm({ ...form, nome: e.target.value })}
+                className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">E-mail</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Telefone</label>
+              <input
+                type="tel"
+                placeholder="(11) 99999-9999"
+                value={form.telefone}
+                onChange={e => setForm({ ...form, telefone: e.target.value })}
+                className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Empresa</label>
+              <input
+                type="text"
+                value={form.empresa}
+                onChange={e => setForm({ ...form, empresa: e.target.value })}
+                className="w-full rounded-xl border border-slate-200 bg-white/50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]"
+              />
+            </div>
+          </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 uppercase mb-1">Papel</label>
             <select

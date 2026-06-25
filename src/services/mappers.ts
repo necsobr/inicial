@@ -70,6 +70,7 @@ export interface ApiNotification {
 export interface ApiIntegration {
   id: number; name: string; description: string; url: string;
   apiKey?: string; instanceName?: string; active: boolean; type: string;
+  autoMessages?: { boasVindas?: string; notificacaoEvento?: string; confirmacaoPagamento?: string } | null;
 }
 
 export interface ApiPrintRequest {
@@ -82,6 +83,13 @@ export interface ApiSponsorshipRequest {
   id: number; company: string; teamId: number; week: string;
   amount: number; status: string; applicantEmail: string; applicantName: string;
   requestedAt?: string | null; team?: ApiTeam; createdAt?: string | null;
+  billingType?: string | null;
+  asaasPaymentId?: string | null;
+  asaasPaymentStatus?: string | null;
+  asaasBankSlipUrl?: string | null;
+  asaasInvoiceUrl?: string | null;
+  asaasPixQrcode?: string | null;
+  asaasPixCopyPaste?: string | null;
 }
 
 // ── Mappers ────────────────────────────────────────────────────────────────
@@ -264,6 +272,7 @@ export function mapIntegration(i: ApiIntegration): ConfiguracaoIntegracao {
     instancia: i.instanceName ?? '',
     ativa: i.active,
     tipo: i.type as ConfiguracaoIntegracao['tipo'],
+    mensagensAutomaticas: i.autoMessages ?? undefined,
   };
 }
 
@@ -294,5 +303,12 @@ export function mapSponsorshipRequest(s: ApiSponsorshipRequest): SolicitacaoPatr
     patrocinadorEmail: s.applicantEmail,
     patrocinadorNome: s.applicantName,
     dataSolicitacao: s.requestedAt ?? '',
+    billingType: (s.billingType as SolicitacaoPatrocinio['billingType']) ?? undefined,
+    asaasPaymentId: s.asaasPaymentId ?? undefined,
+    asaasPaymentStatus: s.asaasPaymentStatus ?? undefined,
+    asaasBankSlipUrl: s.asaasBankSlipUrl ?? undefined,
+    asaasInvoiceUrl: s.asaasInvoiceUrl ?? undefined,
+    asaasPixQrcode: s.asaasPixQrcode ?? undefined,
+    asaasPixCopyPaste: s.asaasPixCopyPaste ?? undefined,
   };
 }

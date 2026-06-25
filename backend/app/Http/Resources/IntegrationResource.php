@@ -17,6 +17,7 @@ class IntegrationResource extends JsonResource
             'instanceName' => $this->instance_name,
             'active' => $this->active,
             'type' => $this->type,
+            'autoMessages' => $this->auto_messages,
             'createdAt' => $this->created_at?->toISOString(),
             'updatedAt' => $this->updated_at?->toISOString(),
         ];

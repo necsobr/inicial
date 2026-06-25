@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Layers, DollarSign, Printer, Settings, Menu, X, LogOut,
+  LayoutDashboard, Users, Layers, DollarSign, Printer, Settings, Menu, X, LogOut, MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -11,6 +11,7 @@ const links = [
   { to: '/admin/equipes', icone: Layers, label: 'Gestores e Equipes' },
   { to: '/admin/patrocinadores', icone: DollarSign, label: 'Patrocinadores' },
   { to: '/admin/producao', icone: Printer, label: 'Produção' },
+  { to: '/admin/whatsapp', icone: MessageCircle, label: 'Mensagens WhatsApp' },
   { to: '/admin/configuracoes', icone: Settings, label: 'Configurações' },
 ];
 
