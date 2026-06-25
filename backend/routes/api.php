@@ -20,6 +20,7 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/register-group', [AuthController::class, 'registerGroup']);
 Route::get('/teams', [TeamController::class, 'index']);
+Route::post('/asaas/webhook', [SponsorshipRequestController::class, 'webhook']);
 
 // Rotas autenticadas
 Route::middleware('auth:sanctum')->group(function () {
@@ -75,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::apiResource('integrations', IntegrationController::class);
         Route::post('/integrations/{integration}/test', [IntegrationController::class, 'test']);
+        Route::post('/integrations/{integration}/send-message', [IntegrationController::class, 'sendMessage']);
         Route::get('/integrations/{integration}/qrcode', [IntegrationController::class, 'qrCode']);
         Route::post('/integrations/{integration}/pairing-code', [IntegrationController::class, 'pairingCode']);
         Route::get('/integrations/{integration}/connection-state', [IntegrationController::class, 'connectionState']);
@@ -82,6 +84,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Solicitações de patrocínio
     Route::apiResource('sponsorship-requests', SponsorshipRequestController::class);
+    Route::get('/sponsorship-requests/{sponsorshipRequest}/payment-status', [SponsorshipRequestController::class, 'checkPaymentStatus']);
 
     // Requisições de impressão
     Route::apiResource('print-requests', PrintRequestController::class);
@@ -91,4 +94,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{user}', [AuthController::class, 'update']);
     Route::delete('/users/{user}', [AuthController::class, 'destroy']);
     Route::put('/users/{user}/role', [AuthController::class, 'changeRole']);
+    Route::post('/users/{user}/impersonate', [AuthController::class, 'impersonate']);
 });

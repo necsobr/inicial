@@ -10,9 +10,9 @@ class Integration extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['name', 'description', 'url', 'api_key', 'instance_name', 'active', 'type'];
+    protected $fillable = ['name', 'description', 'url', 'api_key', 'instance_name', 'active', 'type', 'auto_messages'];
 
-    protected function casts(): array { return ['active' => 'boolean']; }
+    protected function casts(): array { return ['active' => 'boolean', 'auto_messages' => 'array']; }
 
     protected $hidden = ['api_key'];
 }

@@ -83,6 +83,27 @@ class AuthController extends Controller
         return response()->json(['data' => UserResource::collection(User::with('team')->get())]);
     }
 
+    public function impersonate(Request $request, User $user): JsonResponse
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Acesso negado.'], 403);
+        }
+
+        if ($request->user()->id === $user->id) {
+            return response()->json(['message' => 'Você já é este usuário.'], 422);
+        }
+
+        $token = $user->createToken('admin-impersonate')->plainTextToken;
+
+        return response()->json([
+            'data' => [
+                'user'  => new UserResource($user->load('team')),
+                'token' => $token,
+            ],
+            'message' => 'Login como ' . $user->name . ' realizado.',
+        ]);
+    }
+
     public function update(Request $request, User $user): JsonResponse
     {
         $actor = $request->user();
@@ -91,12 +112,16 @@ class AuthController extends Controller
         }
 
         $request->validate([
+            'name'    => ['sometimes', 'string', 'max:255'],
+            'email'   => ['sometimes', 'email', 'unique:users,email,' . $user->id],
+            'phone'   => ['sometimes', 'nullable', 'string', 'max:20'],
+            'company' => ['sometimes', 'nullable', 'string', 'max:255'],
             'role'    => ['sometimes', 'in:admin,coordenador,trio,membro,producao'],
             'team_id' => ['sometimes', 'nullable', 'exists:teams,id'],
             'active'  => ['sometimes', 'boolean'],
         ]);
 
-        $user->update($request->only(['role', 'team_id', 'active']));
+        $user->update($request->only(['name', 'email', 'phone', 'company', 'role', 'team_id', 'active']));
 
         return response()->json([
             'data' => new UserResource($user->fresh('team')),

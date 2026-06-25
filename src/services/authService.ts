@@ -71,6 +71,12 @@ export const authService = {
     return mapUser(res.data);
   },
 
+  async loginComo(usuarioId: string): Promise<{ usuario: Usuario; token: string }> {
+    const res = await api.post<LoginResponse>(`/users/${usuarioId}/impersonate`);
+    saveToken(res.data.token);
+    return { usuario: mapUser(res.data.user), token: res.data.token };
+  },
+
   async alterarPapel(usuarioId: string, novoPapel: string): Promise<Usuario> {
     const res = await api.put<UserResponse>(`/users/${usuarioId}/role`, { role: novoPapel });
     return mapUser(res.data);

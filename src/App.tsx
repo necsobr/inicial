@@ -15,6 +15,7 @@ import TeamsPage from './pages/admin/TeamsPage';
 import SponsorsAdminPage from './pages/admin/SponsorsPage';
 import ProductionAdminPage from './pages/admin/ProductionPage';
 import SettingsPage from './pages/admin/SettingsPage';
+import WhatsAppMensagensPage from './pages/admin/WhatsAppMensagensPage';
 
 import CoordinatorDashboard from './pages/coordinator/CoordinatorDashboard';
 import MembroDashboard from './pages/membro/MembroDashboard';
@@ -98,6 +99,7 @@ function AppRoutes() {
             <Route path="patrocinadores" element={<SponsorsAdminPage />} />
             <Route path="producao" element={<ProductionAdminPage />} />
             <Route path="configuracoes" element={<SettingsPage />} />
+            <Route path="whatsapp" element={<WhatsAppMensagensPage />} />
           </Route>
 
           <Route

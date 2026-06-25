@@ -226,8 +226,14 @@ export const integracaoService = {
       api_key:       dados.chaveApi,
       instance_name: dados.instancia,
       active:        dados.ativa,
+      auto_messages: dados.mensagensAutomaticas,
     });
     return mapIntegration(res.data);
+  },
+
+  async enviarMensagemTeste(id: string, phone: string, message: string): Promise<{ success: boolean; message: string }> {
+    const res = await api.post<{ success: boolean; message: string }>(`/integrations/${id}/send-message`, { phone, message });
+    return res;
   },
 
   async testar(id: string): Promise<boolean> {
@@ -263,11 +269,18 @@ export const usuarioService = {
     return res.data.map(mapUser);
   },
 
-  async atualizar(id: string, dados: { papel?: string; equipeId?: string | null; ativo?: boolean }): Promise<Usuario> {
+  async atualizar(id: string, dados: {
+    papel?: string; equipeId?: string | null; ativo?: boolean;
+    nome?: string; email?: string; telefone?: string; empresa?: string;
+  }): Promise<Usuario> {
     const res = await api.put<SingleResponse<ApiUser>>(`/users/${id}`, {
       role:    dados.papel,
       team_id: dados.equipeId ? Number(dados.equipeId) : dados.equipeId === null ? null : undefined,
       active:  dados.ativo,
+      name:    dados.nome,
+      email:   dados.email,
+      phone:   dados.telefone,
+      company: dados.empresa,
     });
     return mapUser(res.data);
   },
@@ -299,7 +312,10 @@ export const sponsorshipService = {
     return res.data.map(mapSponsorshipRequest);
   },
 
-  async criar(dados: { empresa: string; equipeId: string; semana: string; valor: number; email: string; nome: string }): Promise<SolicitacaoPatrocinio> {
+  async criar(dados: {
+    empresa: string; equipeId: string; semana: string; valor: number;
+    email: string; nome: string; cpfCnpj: string; telefone?: string; billingType: string;
+  }): Promise<SolicitacaoPatrocinio> {
     const res = await api.post<SingleResponse<ApiSponsorshipRequest>>('/sponsorship-requests', {
       company:         dados.empresa,
       team_id:         Number(dados.equipeId),
@@ -308,8 +324,16 @@ export const sponsorshipService = {
       applicant_email: dados.email,
       applicant_name:  dados.nome,
       requested_at:    new Date().toISOString().slice(0, 10),
+      cpf_cnpj:        dados.cpfCnpj,
+      phone:           dados.telefone,
+      billing_type:    dados.billingType,
     });
     return mapSponsorshipRequest(res.data);
+  },
+
+  async verificarPagamento(id: string): Promise<{ asaasStatus: string; status: string }> {
+    const res = await api.get<{ asaasStatus: string; status: string }>(`/sponsorship-requests/${id}/payment-status`);
+    return res;
   },
 
   async atualizarStatus(id: string, status: string): Promise<SolicitacaoPatrocinio> {

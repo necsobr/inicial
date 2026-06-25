@@ -39,6 +39,35 @@ class EvolutionService
         }
     }
 
+    public function sendTestMessage(Integration $integration, string $phone, string $message): array
+    {
+        if (!$integration->url || !$integration->api_key || !$integration->instance_name) {
+            return ['success' => false, 'message' => 'URL, API Key e Nome da Instância são obrigatórios.'];
+        }
+
+        $number = preg_replace('/\D/', '', $phone);
+        if (strlen($number) <= 11) {
+            $number = '55' . $number;
+        }
+
+        try {
+            $response = Http::withHeaders(['apikey' => $integration->api_key])
+                ->timeout(15)
+                ->post("{$integration->url}/message/sendText/{$integration->instance_name}", [
+                    'number' => $number,
+                    'text'   => $message,
+                ]);
+
+            if ($response->successful()) {
+                return ['success' => true, 'message' => 'Mensagem enviada com sucesso!'];
+            }
+
+            return ['success' => false, 'message' => "Erro ao enviar: HTTP {$response->status()}."];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => "Erro: {$e->getMessage()}"];
+        }
+    }
+
     public function getQrCode(Integration $integration): array
     {
         if (!$integration->url || !$integration->api_key || !$integration->instance_name) {

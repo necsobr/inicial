@@ -14,7 +14,7 @@ class TeamResource extends JsonResource
             'name' => $this->name,
             'regional' => $this->regional,
             'city' => $this->city,
-            'totalMembers' => $this->total_members,
+            'totalMembers' => $this->members_count ?? $this->members()->count(),
             'internalRefs' => $this->internal_refs,
             'externalRefs' => $this->external_refs,
             'meetings1a1' => $this->meetings_1a1,
