@@ -167,6 +167,20 @@ export interface MensagensAutomaticasWhatsApp {
   entradaGrupo?: string;
 }
 
+export interface ImpressoraConfig {
+  chave: string;
+  nome: string;
+  descricao: string;
+  ip: string;
+  cupsNome?: string;
+}
+
+export interface ConfiguracaoImpressao {
+  padrao?: string;
+  mapeamentoPapel?: Record<string, string>;
+  impressoras?: ImpressoraConfig[];
+}
+
 export interface ConfiguracaoIntegracao {
   id: string;
   nome: string;
@@ -177,6 +191,7 @@ export interface ConfiguracaoIntegracao {
   ativa: boolean;
   tipo: TipoIntegracao;
   mensagensAutomaticas?: MensagensAutomaticasWhatsApp;
+  config?: ConfiguracaoImpressao;
 }
 
 export interface SolicitacaoAdesao {

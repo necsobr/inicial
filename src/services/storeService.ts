@@ -98,9 +98,14 @@ export const mapaReferenciaService = {
     return res.data.map(mapReferenceMap);
   },
 
-  async atualizarStatus(id: string, status: string): Promise<MapaReferencia> {
-    const res = await api.put<SingleResponse<ApiReferenceMap>>(`/reference-maps/${id}`, { status });
+  async atualizarStatus(id: string, status: string, printerIp?: string): Promise<MapaReferencia> {
+    const res = await api.put<SingleResponse<ApiReferenceMap>>(`/reference-maps/${id}`, { status, printer_ip: printerIp });
     return mapReferenceMap(res.data);
+  },
+
+  async imprimir(id: string, printerIp?: string, copies?: number): Promise<{ success: boolean; message: string }> {
+    const res = await api.post<{ success: boolean; message: string }>(`/reference-maps/${id}/print`, { printer_ip: printerIp, copies });
+    return res;
   },
 
   async criar(dados: Omit<MapaReferencia, 'id'>, arquivo?: File): Promise<MapaReferencia> {
@@ -236,6 +241,17 @@ export const integracaoService = {
       instance_name: dados.instancia,
       active:        dados.ativa,
       auto_messages: dados.mensagensAutomaticas,
+      config: dados.config ? {
+        padrao:           dados.config.padrao,
+        mapeamento_papel: dados.config.mapeamentoPapel,
+        impressoras:      dados.config.impressoras?.map(p => ({
+          chave:     p.chave,
+          nome:      p.nome,
+          descricao: p.descricao,
+          ip:        p.ip,
+          cups_nome: p.cupsNome,
+        })),
+      } : undefined,
     });
     return mapIntegration(res.data);
   },

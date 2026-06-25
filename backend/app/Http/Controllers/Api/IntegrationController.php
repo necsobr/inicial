@@ -58,6 +58,7 @@ class IntegrationController extends Controller
             'active'        => ['boolean'],
             'type'          => ['sometimes', 'in:impressao,whatsapp,pagamento'],
             'auto_messages' => ['sometimes', 'nullable', 'array'],
+            'config'        => ['sometimes', 'nullable', 'array'],
         ]);
 
         $integration->update($data);

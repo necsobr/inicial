@@ -7,6 +7,23 @@ services:
       dockerfile: docker/php/Dockerfile
     volumes:
       - ./backend:/var/www/backend
+      - /run/cups/cups.sock:/run/cups/cups.sock
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - aiprint
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    command: php artisan queue:work redis --queue=impressao --sleep=3 --tries=3 --timeout=120
+    volumes:
+      - ./backend:/var/www/backend
+      - /run/cups/cups.sock:/run/cups/cups.sock
     depends_on:
       mysql:
         condition: service_healthy

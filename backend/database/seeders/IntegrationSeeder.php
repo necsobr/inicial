@@ -38,8 +38,31 @@ class IntegrationSeeder extends Seeder
                 'description' => 'Integração com sistema local de impressão para envio automático dos mapas de referência.',
                 'url' => '',
                 'api_key' => '',
-                'active' => false,
+                'active' => true,
                 'type' => 'impressao',
+                'config' => [
+                    'padrao' => 'l4260',
+                    'mapeamento_papel' => [
+                        'A4' => 'l4260',
+                        'A3' => 'l1455',
+                    ],
+                    'impressoras' => [
+                        [
+                            'chave'     => 'l4260',
+                            'nome'      => 'Epson L4260',
+                            'descricao' => 'Impressora menor (escritório)',
+                            'ip'        => '172.16.50.208',
+                            'cups_nome' => 'EPSON_L4260_Series',
+                        ],
+                        [
+                            'chave'     => 'l1455',
+                            'nome'      => 'Epson L1455',
+                            'descricao' => 'Impressora maior (escritório)',
+                            'ip'        => '172.16.50.203',
+                            'cups_nome' => 'EPSON_L1455_Series',
+                        ],
+                    ],
+                ],
             ]
         );
     }
