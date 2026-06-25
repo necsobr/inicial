@@ -7,6 +7,7 @@ Plataforma SaaS de gestão e delivery de mapas de referência para grupos de net
 - [Docker](https://docs.docker.com/get-docker/) e Docker Compose
 - [Make](https://www.gnu.org/software/make/) (`brew install make` no macOS)
 - Git
+- **CUPS** instalado no host (necessário para integração com impressoras Epson)
 
 ## Instalação
 
@@ -48,6 +49,9 @@ A API está disponível em **http://localhost/api**
 | Banco | MySQL 8 |
 | Cache / Filas | Redis 7 |
 | Infra | Docker + Nginx |
+| Impressão | CUPS (host) + Epson L4260 / L1455 via socket |
+| Pagamentos | Asaas API v3 (PIX e Boleto) |
+| WhatsApp | Evolution API |
 
 ## Comandos disponíveis
 
@@ -78,8 +82,9 @@ backend/                    # API Laravel 11
 │   │   ├── Controllers/Api/  # Controllers REST
 │   │   ├── Requests/         # Validação via FormRequest
 │   │   └── Resources/        # Transformação das respostas
+│   ├── Jobs/                 # Jobs de fila (impressão, etc.)
 │   ├── Models/               # Eloquent Models
-│   └── Services/             # Lógica de negócio
+│   └── Services/             # Lógica de negócio (Asaas, Evolution, Epson…)
 ├── database/
 │   ├── migrations/
 │   └── seeders/
@@ -98,6 +103,34 @@ docker/
 ├── nginx/                  # Configurações Nginx (dev, produção, bootstrap)
 └── php/                    # Dockerfiles PHP (dev e produção)
 ```
+
+## Integrações
+
+### Impressão — Epson via CUPS
+
+O sistema imprime PDFs automaticamente quando a produção marca um mapa de referência como **em produção**. A impressora é escolhida pelo tipo de papel da O.S.:
+
+| Tipo de papel | Impressora | IP |
+|---|---|---|
+| A4 | Epson L4260 | 172.16.50.208 |
+| A3 | Epson L1455 | 172.16.50.203 |
+
+O número de cópias é calculado como `total de cópias ÷ número de reuniões` da O.S.
+
+A impressão é assíncrona: o job entra na fila Redis (`impressao`) e o container `worker` processa um por vez, evitando conflitos. Em caso de falha após 3 tentativas, o status do mapa volta para `recebido`.
+
+**Requisito:** CUPS instalado no host com as impressoras configuradas. O socket `/run/cups/cups.sock` é montado automaticamente nos containers.
+
+### Pagamentos — Asaas
+
+Integração com Asaas para cobrança das cotas de patrocínio via PIX ou Boleto. Configure a chave de API em **Admin → Configurações → Asaas**.
+
+- Produção: chave `aas_live_...` com URL `https://api.asaas.com/v3`
+- Sandbox: chave `aas_test_...` com URL `https://sandbox.asaas.com/api/v3`
+
+### WhatsApp — Evolution API
+
+Mensagens automáticas enviadas pelo sistema em eventos como: solicitação de entrada no grupo, vez na fila de patrocínio, O.S. preenchida, lembretes de mapa. Configure os templates em **Admin → Mensagens WhatsApp**.
 
 ## Deploy em produção
 
@@ -136,3 +169,8 @@ Durante o deploy a aplicação entra em modo de manutenção. Para acessar enqua
 ```
 https://seu-dominio.com?secret=DEPLOY_SECRET
 ```
+
+> Em produção, garanta que o serviço `worker` esteja rodando para processar a fila de impressão:
+> ```bash
+> docker compose up -d worker
+> ```

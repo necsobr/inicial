@@ -28,6 +28,8 @@ Aplicação full-stack real: backend Laravel com API REST + frontend React consu
 - Nginx como reverse proxy
 - Redis (cache/sessões/filas)
 - Makefile obrigatório para todos os comandos
+- CUPS (sistema de impressão do host) montado via socket no container
+- Worker dedicado (`aiprint-worker-1`) processa a fila `impressao`
 
 ## Estrutura
 ```
@@ -37,6 +39,7 @@ backend/
 │   │   ├── Controllers/Api/  # Controllers REST (retornam JSON via Resources)
 │   │   ├── Requests/         # FormRequests para validação
 │   │   └── Resources/        # API Resources para transformação de respostas
+│   ├── Jobs/                 # Jobs de fila (ex: PrintReferenceMap)
 │   ├── Models/               # Eloquent Models
 │   └── Services/             # Lógica de negócio
 ├── database/
@@ -73,6 +76,7 @@ docker/
 | producao     | producao@aiprint.com        | /producao     |
 
 "Patrocinador" não é um papel de usuário — é um status de membro dentro de uma O.S. (Ordem de Serviço).
+Ser patrocinador = pagar uma vaga na O.S. via Asaas (PIX ou Boleto). O pagamento é feito pela entrada na fila (`queue_entries`).
 
 Senha padrão: **123456**
 
@@ -130,6 +134,38 @@ Seeders sempre com `updateOrCreate()`.
 - Erros devem ser descritivos (nunca "Erro 500")
 - Toast para feedback de ações
 
+## Integrações
+
+### Impressão (Epson — CUPS)
+- Duas impressoras na rede local `172.16.50.x` integradas via CUPS do host
+- O socket `/run/cups/cups.sock` é montado nos containers `app` e `worker`
+- **Roteamento automático por tipo de papel da O.S.:**
+  - `A4` → Epson L4260 (`172.16.50.208`, CUPS: `EPSON_L4260_Series`)
+  - `A3` → Epson L1455 (`172.16.50.203`, CUPS: `EPSON_L1455_Series`)
+- **Cópias por impressão** = `numeroCopias ÷ numeroReunioes` da O.S. (arredonda pra baixo)
+- Trigger: status do mapa de referência muda para `em_producao`
+- A impressão **não é síncrona** — entra na fila Redis (`queue impressao`) e o `worker` processa um job por vez
+- Se falhar 3 tentativas: status volta para `recebido` para reprocessamento manual
+- Admin configura IPs, nomes CUPS e mapeamento de papel em **Configurações → Sistema de Impressão**
+- Endpoint de reimpressão manual: `POST /api/reference-maps/{id}/print`
+
+### Pagamento (Asaas)
+- PIX e Boleto via Asaas API v3
+- Fluxo: usuário entra na fila de graça → quando chega sua vez, paga via `POST /queue-entries/{id}/pay`
+- Campos Asaas armazenados na tabela `queue_entries`
+- Polling de status via `GET /queue-entries/{id}/payment-status`
+- Sandbox: usar URL `https://sandbox.asaas.com/api/v3` com chave `aas_test_...`
+
+### WhatsApp (Evolution API)
+- Mensagens automáticas configuráveis em **Admin → Mensagens WhatsApp**
+- 13 templates com variáveis `{{{chave}}}` substituídas em runtime
+- Gatilhos implementados:
+  - Coordenador: lembrete de mapa 3 dias antes, solicitação de entrada, O.S. preenchida
+  - Trio: lembrete de mapa 1 dia antes (se coord não enviou), solicitação de entrada, O.S. preenchida
+  - Membro: confirmação de entrada no grupo, lembrete 1 dia antes (se for patrocinador)
+  - Usuário na fila: notificação quando chega sua vez
+
 ## Deploy
 - `DEPLOY_SECRET` — sobrescreva via variável de ambiente para acessar o app durante manutenção: `https://dominio.com?secret=DEPLOY_SECRET`
 - Ao final de cada deploy é gerado `backend/public/version.json` com hash e data do commit
+- O serviço `worker` deve estar rodando em produção para processar a fila de impressão
