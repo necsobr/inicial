@@ -136,9 +136,18 @@ export const filaService = {
     return mapQueueEntry(res.data);
   },
 
-  async pagar(id: string): Promise<EntradaFila> {
-    const res = await api.post<SingleResponse<ApiQueueEntry>>(`/queue-entries/${id}/pay`);
+  async iniciarPagamento(id: string, dados: { cpfCnpj: string; billingType: 'PIX' | 'BOLETO'; phone?: string }): Promise<EntradaFila> {
+    const res = await api.post<SingleResponse<ApiQueueEntry>>(`/queue-entries/${id}/pay`, {
+      cpf_cnpj:     dados.cpfCnpj,
+      billing_type: dados.billingType,
+      phone:        dados.phone,
+    });
     return mapQueueEntry(res.data);
+  },
+
+  async verificarPagamento(id: string): Promise<{ asaasStatus: string; status: string }> {
+    const res = await api.get<{ asaasStatus: string; status: string }>(`/queue-entries/${id}/payment-status`);
+    return res;
   },
 
   async recusar(id: string): Promise<EntradaFila> {

@@ -54,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/queue-entries', [QueueEntryController::class, 'store']);
     Route::post('/queue-entries/{queueEntry}/pay', [QueueEntryController::class, 'pay']);
     Route::post('/queue-entries/{queueEntry}/decline', [QueueEntryController::class, 'decline']);
+    Route::get('/queue-entries/{queueEntry}/payment-status', [QueueEntryController::class, 'checkPaymentStatus']);
 
     // Solicitações de adesão (entrar em equipe existente)
     Route::get('/membership-requests', [MembershipRequestController::class, 'index']);

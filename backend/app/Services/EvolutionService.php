@@ -39,6 +39,22 @@ class EvolutionService
         }
     }
 
+    public function sendAutoMessage(string $templateKey, string $phone, array $vars = []): void
+    {
+        $integration = Integration::where('type', 'whatsapp')->where('active', true)->first();
+        if (!$integration) return;
+
+        $templates = $integration->auto_messages ?? [];
+        $template  = $templates[$templateKey] ?? null;
+        if (!$template) return;
+
+        foreach ($vars as $key => $value) {
+            $template = str_replace("{{{$key}}}", (string) $value, $template);
+        }
+
+        $this->sendText($phone, $template);
+    }
+
     public function sendTestMessage(Integration $integration, string $phone, string $message): array
     {
         if (!$integration->url || !$integration->api_key || !$integration->instance_name) {

@@ -47,6 +47,13 @@ export interface ApiQueueEntry {
   id: number; serviceOrderId: number; userId: number;
   name: string; company: string; phone: string; position: number;
   status: string; joinedAt: string; expiresAt?: string | null;
+  billingType?: string | null;
+  asaasPaymentId?: string | null;
+  asaasPaymentStatus?: string | null;
+  asaasBankSlipUrl?: string | null;
+  asaasInvoiceUrl?: string | null;
+  asaasPixQrcode?: string | null;
+  asaasPixCopyPaste?: string | null;
 }
 
 export interface ApiMembershipRequest {
@@ -216,6 +223,13 @@ export function mapQueueEntry(q: ApiQueueEntry): EntradaFila {
     status: q.status as EntradaFila['status'],
     dataEntrada: q.joinedAt,
     dataExpiracao: q.expiresAt ?? undefined,
+    billingType: (q.billingType as EntradaFila['billingType']) ?? undefined,
+    asaasPaymentId: q.asaasPaymentId ?? undefined,
+    asaasPaymentStatus: q.asaasPaymentStatus ?? undefined,
+    asaasBankSlipUrl: q.asaasBankSlipUrl ?? undefined,
+    asaasInvoiceUrl: q.asaasInvoiceUrl ?? undefined,
+    asaasPixQrcode: q.asaasPixQrcode ?? undefined,
+    asaasPixCopyPaste: q.asaasPixCopyPaste ?? undefined,
   };
 }
 
