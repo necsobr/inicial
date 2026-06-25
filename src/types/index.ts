@@ -165,6 +165,9 @@ export interface MensagensAutomaticasWhatsApp {
   lembreteMapa1dia?: string;
   lembretePatrocinador?: string;
   entradaGrupo?: string;
+  mapaRecebido?: string;
+  falhaImpressao?: string;
+  impressaoConcluida?: string;
 }
 
 export interface ImpressoraConfig {

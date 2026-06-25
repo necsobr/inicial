@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReferenceMap\StoreReferenceMapRequest;
 use App\Http\Resources\ReferenceMapResource;
+use App\Jobs\NotificarMapaRecebido;
 use App\Jobs\PrintReferenceMap;
 use App\Models\Event;
 use App\Models\ReferenceMap;
@@ -61,6 +62,8 @@ class ReferenceMapController extends Controller
         }
 
         $map = ReferenceMap::create($data);
+
+        NotificarMapaRecebido::dispatchComHorario($map);
 
         return response()->json([
             'data' => new ReferenceMapResource($map->load('team', 'serviceOrder', 'event', 'uploader')),

@@ -104,6 +104,27 @@ const TEMPLATES: {
     variaveis: ['{nome}', '{evento}', '{data}', '{local}'],
     placeholder: 'Olá {nome}! Lembramos que amanhã ({data}) acontece o evento "{evento}" em {local}. Contamos com sua presença como patrocinador!',
   },
+  {
+    key: 'mapaRecebido',
+    label: 'PDF do mapa recebido',
+    descricao: 'Enviada à produção quando o coordenador faz upload do PDF do mapa. Fora do horário comercial (9h–17h), chega apenas às 9h do próximo dia útil.',
+    variaveis: ['{equipe}', '{papel}', '{dataEntrega}', '{horaEntrega}', '{endereco}'],
+    placeholder: 'Novo mapa recebido! Equipe: {equipe} | Papel: {papel} | Entrega: {dataEntrega} às {horaEntrega} — {endereco}. Acesse o sistema para colocar em produção.',
+  },
+  {
+    key: 'impressaoConcluida',
+    label: 'Impressão concluída',
+    descricao: 'Enviada à produção quando o mapa de referência termina de imprimir e está pronto para entrega.',
+    variaveis: ['{equipe}', '{papel}', '{copias}', '{dataEntrega}', '{horaEntrega}', '{endereco}'],
+    placeholder: 'Mapa da equipe {equipe} ({papel}) impresso com sucesso! {copias} cópias prontas para entrega em {dataEntrega} às {horaEntrega} — {endereco}.',
+  },
+  {
+    key: 'falhaImpressao',
+    label: 'Falha na impressão',
+    descricao: 'Enviada à produção quando um mapa de referência falha ao imprimir após todas as tentativas.',
+    variaveis: ['{equipe}', '{papel}', '{erro}'],
+    placeholder: 'Atenção produção: falha ao imprimir o mapa da equipe {equipe} ({papel}). Erro: {erro}. Acesse o sistema para reenviar.',
+  },
 ];
 
 const MSG_VAZIA: MensagensAutomaticasWhatsApp = {
@@ -111,6 +132,7 @@ const MSG_VAZIA: MensagensAutomaticasWhatsApp = {
   novaReferencia: '', entregaMapa: '', aprovacaoAdesao: '',
   vezNaFila: '', solicitacaoEntrada: '', entradaGrupo: '', osPreenchida: '',
   lembreteMapa3dias: '', lembreteMapa1dia: '', lembretePatrocinador: '',
+  mapaRecebido: '', impressaoConcluida: '', falhaImpressao: '',
 };
 
 export default function WhatsAppMensagensPage() {
