@@ -55,11 +55,62 @@ const TEMPLATES: {
     variaveis: ['{nome}', '{equipe}'],
     placeholder: 'Olá {nome}, sua solicitação para entrar na equipe {equipe} foi aprovada! Bem-vindo(a).',
   },
+  {
+    key: 'vezNaFila',
+    label: 'Vez na fila de patrocínio',
+    descricao: 'Enviada ao usuário quando chega a sua vez na fila da O.S. para se tornar patrocinador.',
+    variaveis: ['{nome}', '{osId}', '{valor}', '{prazo}'],
+    placeholder: 'Olá {nome}! Chegou a sua vez na fila de patrocínio da O.S. #{osId}. Valor: {valor}. Você tem {prazo} para confirmar e realizar o pagamento no sistema.',
+  },
+  {
+    key: 'solicitacaoEntrada',
+    label: 'Solicitação de entrada no grupo',
+    descricao: 'Enviada ao coordenador e trio quando alguém solicita entrar na equipe.',
+    variaveis: ['{nome}', '{telefone}'],
+    placeholder: 'Nova solicitação de entrada no grupo: {nome} — Tel: {telefone}. Acesse o sistema para aceitar ou recusar.',
+  },
+  {
+    key: 'entradaGrupo',
+    label: 'Confirmação de entrada no grupo',
+    descricao: 'Enviada ao usuário quando sua solicitação de adesão é aceita.',
+    variaveis: ['{nome}', '{equipe}'],
+    placeholder: 'Olá {nome}! Você foi aceito(a) no grupo {equipe}. Acesse o sistema para começar.',
+  },
+  {
+    key: 'osPreenchida',
+    label: 'O.S. com vagas preenchidas',
+    descricao: 'Enviada ao coordenador e trio quando todas as vagas de patrocínio de uma O.S. são preenchidas.',
+    variaveis: ['{osId}', '{vagas}'],
+    placeholder: 'Todas as {vagas} vaga(s) de patrocínio da O.S. #{osId} foram preenchidas!',
+  },
+  {
+    key: 'lembreteMapa3dias',
+    label: 'Lembrete de mapa — 3 dias (coordenador)',
+    descricao: 'Enviada ao coordenador 3 dias antes do evento se o mapa ainda não foi enviado.',
+    variaveis: ['{nome}', '{evento}', '{data}'],
+    placeholder: 'Olá {nome}, o evento "{evento}" acontece em {data}. Lembre-se de enviar o mapa de referência no sistema.',
+  },
+  {
+    key: 'lembreteMapa1dia',
+    label: 'Lembrete de mapa — 1 dia (trio)',
+    descricao: 'Enviada ao trio 1 dia antes do evento se o coordenador ainda não enviou o mapa.',
+    variaveis: ['{nome}', '{evento}', '{data}'],
+    placeholder: 'Atenção {nome}: o mapa de referência do evento "{evento}" (amanhã, {data}) ainda não foi enviado pelo coordenador.',
+  },
+  {
+    key: 'lembretePatrocinador',
+    label: 'Lembrete para patrocinadores — 1 dia antes',
+    descricao: 'Enviada a todos os patrocinadores confirmados 1 dia antes do evento.',
+    variaveis: ['{nome}', '{evento}', '{data}', '{local}'],
+    placeholder: 'Olá {nome}! Lembramos que amanhã ({data}) acontece o evento "{evento}" em {local}. Contamos com sua presença como patrocinador!',
+  },
 ];
 
 const MSG_VAZIA: MensagensAutomaticasWhatsApp = {
   boasVindas: '', notificacaoEvento: '', confirmacaoPagamento: '',
   novaReferencia: '', entregaMapa: '', aprovacaoAdesao: '',
+  vezNaFila: '', solicitacaoEntrada: '', entradaGrupo: '', osPreenchida: '',
+  lembreteMapa3dias: '', lembreteMapa1dia: '', lembretePatrocinador: '',
 };
 
 export default function WhatsAppMensagensPage() {

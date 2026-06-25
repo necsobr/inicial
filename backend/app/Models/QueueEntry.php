@@ -13,6 +13,9 @@ class QueueEntry extends Model
     protected $fillable = [
         'service_order_id', 'user_id', 'name', 'company', 'phone',
         'position', 'status', 'joined_at', 'expires_at',
+        'cpf_cnpj', 'billing_type', 'asaas_customer_id', 'asaas_payment_id',
+        'asaas_payment_status', 'asaas_bank_slip_url', 'asaas_invoice_url',
+        'asaas_pix_qrcode', 'asaas_pix_copy_paste',
     ];
 
     protected function casts(): array

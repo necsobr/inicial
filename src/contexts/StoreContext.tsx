@@ -69,7 +69,7 @@ interface StoreContextType {
   criarOrdemServico: (dados: Partial<OrdemServico>) => Promise<OrdemServico>;
   uploadMapaReferencia: (dados: Omit<MapaReferencia, 'id'>, arquivo?: File) => Promise<void>;
   entrarNaFila: (ordemServicoId: string) => Promise<void>;
-  pagarFila: (id: string) => Promise<void>;
+  atualizarEntradaFila: (entrada: EntradaFila) => void;
   recusarFila: (id: string) => Promise<void>;
   alterarPapelUsuario: (usuarioId: string, novoPapel: string) => Promise<void>;
 }
@@ -213,9 +213,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setFilasOS(prev => [...prev, entrada]);
   };
 
-  const pagarFila = async (id: string) => {
-    const atualizada = await filaService.pagar(id);
-    setFilasOS(prev => prev.map(f => f.id === id ? atualizada : f));
+  const atualizarEntradaFila = (entrada: EntradaFila) => {
+    setFilasOS(prev => prev.map(f => f.id === entrada.id ? entrada : f));
   };
 
   const recusarFila = async (id: string) => {
@@ -261,7 +260,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       criarOrdemServico,
       uploadMapaReferencia,
       entrarNaFila,
-      pagarFila,
+      atualizarEntradaFila,
       recusarFila,
       alterarPapelUsuario,
     }}>

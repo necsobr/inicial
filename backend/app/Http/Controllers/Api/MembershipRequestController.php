@@ -5,13 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MembershipRequestResource;
 use App\Models\MembershipRequest;
+use App\Models\User;
+use App\Services\EvolutionService;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MembershipRequestController extends Controller
 {
-    public function __construct(private NotificationService $notificationService) {}
+    public function __construct(
+        private NotificationService $notificationService,
+        private EvolutionService $evolutionService,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -51,8 +56,18 @@ class MembershipRequestController extends Controller
 
         $user->update(['pending' => true]);
 
+        // Notifica coordenador e trio via WhatsApp
+        User::where('team_id', $request->team_id)
+            ->whereIn('role', ['coordenador', 'trio'])
+            ->whereNotNull('phone')
+            ->get()
+            ->each(fn(User $leader) => $this->evolutionService->sendAutoMessage('solicitacaoEntrada', $leader->phone, [
+                'nome'     => $user->name,
+                'telefone' => $user->phone ?? 'não informado',
+            ]));
+
         return response()->json([
-            'data' => new MembershipRequestResource($mr->load('user', 'team')),
+            'data'    => new MembershipRequestResource($mr->load('user', 'team')),
             'message' => 'Solicitação enviada.',
         ], 201);
     }
@@ -64,7 +79,7 @@ class MembershipRequestController extends Controller
         $user = $membershipRequest->user;
         $user->update([
             'team_id' => $membershipRequest->team_id,
-            'active' => true,
+            'active'  => true,
             'pending' => false,
         ]);
 
@@ -75,8 +90,17 @@ class MembershipRequestController extends Controller
             true
         );
 
+        // Avisa o usuário que foi aceito
+        if ($user->phone) {
+            $team = $membershipRequest->team;
+            $this->evolutionService->sendAutoMessage('entradaGrupo', $user->phone, [
+                'nome'   => $user->name,
+                'equipe' => $team?->name ?? '',
+            ]);
+        }
+
         return response()->json([
-            'data' => new MembershipRequestResource($membershipRequest->fresh('user', 'team')),
+            'data'    => new MembershipRequestResource($membershipRequest->fresh('user', 'team')),
             'message' => 'Solicitação aceita. Usuário ativado na equipe.',
         ]);
     }
@@ -89,7 +113,7 @@ class MembershipRequestController extends Controller
         $user->update(['pending' => false]);
 
         return response()->json([
-            'data' => new MembershipRequestResource($membershipRequest->fresh('user', 'team')),
+            'data'    => new MembershipRequestResource($membershipRequest->fresh('user', 'team')),
             'message' => 'Solicitação recusada.',
         ]);
     }

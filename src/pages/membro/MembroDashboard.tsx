@@ -1,15 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar, ListOrdered, ChevronLeft, ChevronRight,
   Clock, MapPin, Users, DollarSign, CheckCircle, Timer,
-  AlertCircle, Plus, X, Crown, ArrowLeft
+  AlertCircle, Plus, X, Crown, ArrowLeft,
+  QrCode, FileText, Copy, RefreshCw, Loader2,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStore } from '../../contexts/StoreContext';
+import { filaService } from '../../services/storeService';
 import { formatarMoeda, formatarData, labelDiaSemana } from '../../utils/format';
 import Modal from '../../components/Modal';
 import type { EntradaFila } from '../../types';
+
+function formatarCpfCnpj(v: string) {
+  const n = v.replace(/\D/g, '').slice(0, 14);
+  if (n.length <= 11) return n.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, (_,a,b,c,d) => [a,b,c].filter(Boolean).join('.') + (d ? '-'+d : ''));
+  return n.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, (_,a,b,c,d,e) => `${a}.${b}.${c}/${d}` + (e ? '-'+e : ''));
+}
 
 type Aba = 'calendario' | 'filas';
 
@@ -40,7 +48,7 @@ function diasRestantes(dataExpiracao: string): number {
 
 export default function MembroDashboard() {
   const { usuario } = useAuth();
-  const { equipes, eventos, ordensServico, filasOS, entrarNaFila: entrarNaFilaStore, pagarFila, recusarFila } = useStore();
+  const { equipes, eventos, ordensServico, filasOS, entrarNaFila: entrarNaFilaStore, atualizarEntradaFila, recusarFila } = useStore();
   const navigate = useNavigate();
   const [abaAtiva, setAbaAtiva] = useState<Aba>('calendario');
   const [mesAtual, setMesAtual] = useState(() => {
@@ -51,6 +59,16 @@ export default function MembroDashboard() {
   const [modalPagamento, setModalPagamento] = useState<EntradaFila | null>(null);
   const [osExpandida, setOsExpandida] = useState<string | null>(null);
 
+  // Estado do fluxo de pagamento
+  const [etapaPagamento, setEtapaPagamento] = useState<'form' | 'cobranca'>('form');
+  const [cpfCnpj, setCpfCnpj] = useState('');
+  const [billingType, setBillingType] = useState<'PIX' | 'BOLETO'>('PIX');
+  const [gerandoCobranca, setGerandoCobranca] = useState(false);
+  const [erroPagamento, setErroPagamento] = useState('');
+  const [copiado, setCopiado] = useState(false);
+  const [verificandoStatus, setVerificandoStatus] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const equipeAtual = equipes.find(e => e.id === usuario?.equipeId);
   const ordensEquipe = ordensServico.filter(os => os.equipeId === usuario?.equipeId && os.status === 'ativa');
   const eventosEquipe = eventos.filter(ev => ev.equipeId === usuario?.equipeId);
@@ -58,13 +76,64 @@ export default function MembroDashboard() {
   const minhaEntradaNaFila = (osId: string) => filasOS.find(f => f.usuarioId === usuario?.id && f.ordemServicoId === osId);
 
   const entrarNaFila = (osId: string) => void entrarNaFilaStore(osId);
+  const recusarVaga = (entradaId: string) => void recusarFila(entradaId);
 
-  const recusarVaga = (entradaId: string, _osId: string) => void recusarFila(entradaId);
-
-  const confirmarPagamento = (entrada: EntradaFila) => {
-    void pagarFila(entrada.id);
-    setModalPagamento(null);
+  const abrirModalPagamento = (entrada: EntradaFila) => {
+    setModalPagamento(entrada);
+    setEtapaPagamento(entrada.asaasPaymentId ? 'cobranca' : 'form');
+    setCpfCnpj('');
+    setBillingType('PIX');
+    setErroPagamento('');
   };
+
+  const fecharModal = () => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = null;
+    setModalPagamento(null);
+    setEtapaPagamento('form');
+  };
+
+  const gerarCobranca = async () => {
+    if (!modalPagamento || cpfCnpj.replace(/\D/g, '').length < 11) return;
+    setGerandoCobranca(true);
+    setErroPagamento('');
+    try {
+      const atualizada = await filaService.iniciarPagamento(modalPagamento.id, {
+        cpfCnpj,
+        billingType,
+        phone: usuario?.telefone,
+      });
+      atualizarEntradaFila(atualizada);
+      setModalPagamento(atualizada);
+      setEtapaPagamento('cobranca');
+    } catch (e) {
+      setErroPagamento(e instanceof Error ? e.message : 'Erro ao gerar cobrança.');
+    } finally {
+      setGerandoCobranca(false);
+    }
+  };
+
+  const verificarStatus = async () => {
+    if (!modalPagamento) return;
+    setVerificandoStatus(true);
+    try {
+      const res = await filaService.verificarPagamento(modalPagamento.id);
+      if (res.status === 'pago') {
+        const atualizada = { ...modalPagamento, status: 'pago' as EntradaFila['status'], asaasPaymentStatus: res.asaasStatus };
+        atualizarEntradaFila(atualizada);
+        fecharModal();
+      }
+    } catch {} finally {
+      setVerificandoStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    if (etapaPagamento === 'cobranca' && modalPagamento?.asaasPaymentId && modalPagamento.status !== 'pago') {
+      pollingRef.current = setInterval(() => { void verificarStatus(); }, 5000);
+    }
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
+  }, [etapaPagamento, modalPagamento?.id]);
 
   // Calendário
   const { ano, mes } = mesAtual;
@@ -331,11 +400,11 @@ export default function MembroDashboard() {
                           <p className="text-sm text-slate-600 mb-1">Você tem <strong>{diasRestantes(minhaEntrada.dataExpiracao!)} dia(s)</strong> para confirmar (expira em {formatarData(minhaEntrada.dataExpiracao!)}).</p>
                           <p className="text-lg font-extrabold text-[#E63946] mb-4">{formatarMoeda(os.precoCota)}</p>
                           <div className="flex gap-3">
-                            <button onClick={() => setModalPagamento(minhaEntrada)} className="flex items-center gap-2 text-sm font-bold text-white bg-[#E63946] hover:bg-[#d62839] px-4 py-2 rounded-xl shadow transition">
+                            <button onClick={() => abrirModalPagamento(minhaEntrada)} className="flex items-center gap-2 text-sm font-bold text-white bg-[#E63946] hover:bg-[#d62839] px-4 py-2 rounded-xl shadow transition">
                               <DollarSign className="h-4 w-4" />
                               Pagar e Confirmar
                             </button>
-                            <button onClick={() => recusarVaga(minhaEntrada.id, os.id)} className="flex items-center gap-2 text-sm font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-xl transition">
+                            <button onClick={() => recusarVaga(minhaEntrada.id)} className="flex items-center gap-2 text-sm font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-xl transition">
                               <X className="h-4 w-4" />
                               Recusar Vaga
                             </button>
@@ -393,26 +462,128 @@ export default function MembroDashboard() {
         )}
       </div>
 
-      {/* Modal pagamento simulado */}
-      <Modal aberto={!!modalPagamento} onFechar={() => setModalPagamento(null)} titulo="Confirmar Pagamento">
-        {modalPagamento && (
-          <div className="space-y-5">
-            <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-700 font-medium">
-              Pagamento simulado via Asaas. Em produção, você seria redirecionado para a tela de pagamento real.
+      {/* Modal pagamento real via Asaas */}
+      <Modal aberto={!!modalPagamento} onFechar={fecharModal} titulo="Confirmar Patrocínio">
+        {modalPagamento && (() => {
+          const os = ordensEquipe.find(o => o.id === modalPagamento.ordemServicoId);
+          const isPix = modalPagamento.billingType === 'PIX';
+
+          if (etapaPagamento === 'form') {
+            return (
+              <div className="space-y-5">
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-1.5 text-sm">
+                  <div className="flex justify-between"><span className="text-slate-500">O.S.:</span><strong>{os?.tipoPapel}</strong></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Valor:</span><strong className="text-[#E63946]">{formatarMoeda(os?.precoCota ?? 0)}</strong></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Empresa:</span><strong>{modalPagamento.empresa}</strong></div>
+                </div>
+
+                {erroPagamento && (
+                  <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700 font-medium flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />{erroPagamento}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">CPF / CNPJ</label>
+                  <input
+                    type="text"
+                    value={cpfCnpj}
+                    onChange={e => setCpfCnpj(formatarCpfCnpj(e.target.value))}
+                    placeholder="000.000.000-00"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-sm outline-none focus:border-[#E63946]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase">Forma de Pagamento</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(['PIX', 'BOLETO'] as const).map(tipo => (
+                      <button
+                        key={tipo}
+                        type="button"
+                        onClick={() => setBillingType(tipo)}
+                        className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 font-bold text-sm transition ${billingType === tipo ? (tipo === 'PIX' ? 'border-green-500 bg-green-50 text-green-700' : 'border-violet-500 bg-violet-50 text-violet-700') : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                      >
+                        {tipo === 'PIX' ? <QrCode className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+                        {tipo}
+                        <span className="text-[10px] font-normal text-slate-400">{tipo === 'PIX' ? 'Aprovação imediata' : 'Até 3 dias úteis'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button onClick={fecharModal} className="px-4 py-2 text-sm border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50">Cancelar</button>
+                  <button
+                    onClick={() => void gerarCobranca()}
+                    disabled={gerandoCobranca || cpfCnpj.replace(/\D/g, '').length < 11}
+                    className="flex items-center gap-2 px-5 py-2 text-sm font-bold bg-[#E63946] text-white rounded-xl hover:bg-[#d62839] disabled:opacity-40 transition"
+                  >
+                    {gerandoCobranca && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {gerandoCobranca ? 'Gerando...' : 'Gerar Cobrança'}
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
+          // Etapa: cobrança gerada
+          return (
+            <div className="space-y-5">
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 flex items-center gap-3 text-sm">
+                <Clock className="h-4 w-4 text-amber-500 shrink-0" />
+                <div>
+                  <p className="font-bold text-slate-800">Aguardando pagamento</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Verificando automaticamente a cada 5 segundos.</p>
+                </div>
+                <button onClick={() => void verificarStatus()} disabled={verificandoStatus} className="ml-auto p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-white transition">
+                  <RefreshCw className={`h-4 w-4 ${verificandoStatus ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {isPix && modalPagamento.asaasPixQrcode && (
+                <div className="flex justify-center">
+                  <div className="rounded-2xl border-2 border-green-200 p-3 bg-white inline-block shadow-sm">
+                    <img src={`data:image/png;base64,${modalPagamento.asaasPixQrcode}`} alt="QR Code PIX" className="w-44 h-44 rounded-lg" />
+                  </div>
+                </div>
+              )}
+
+              {isPix && modalPagamento.asaasPixCopyPaste && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">PIX Copia e Cola</label>
+                  <div className="flex gap-2">
+                    <input readOnly value={modalPagamento.asaasPixCopyPaste} className="flex-1 rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-xs font-mono text-slate-700 truncate outline-none" />
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(modalPagamento.asaasPixCopyPaste!).catch(()=>{}); setCopiado(true); setTimeout(()=>setCopiado(false),3000); }}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${copiado ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      {copiado ? <CheckCircle className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copiado ? 'Copiado!' : 'Copiar'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!isPix && (
+                <div className="space-y-3">
+                  {modalPagamento.asaasBankSlipUrl && (
+                    <a href={modalPagamento.asaasBankSlipUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition text-sm">
+                      <FileText className="h-4 w-4" />Abrir Boleto
+                    </a>
+                  )}
+                  {modalPagamento.asaasInvoiceUrl && (
+                    <a href={modalPagamento.asaasInvoiceUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3 border border-violet-200 text-violet-700 font-bold rounded-xl transition text-sm hover:bg-violet-50">
+                      <FileText className="h-4 w-4" />Ver fatura
+                    </a>
+                  )}
+                </div>
+              )}
+
+              <button onClick={fecharModal} className="w-full py-2 text-sm text-slate-500 border border-slate-200 rounded-xl hover:bg-slate-50">Fechar (verificarei depois)</button>
             </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-slate-500">O.S.:</span><span className="font-bold">{ordensEquipe.find(o => o.id === modalPagamento.ordemServicoId)?.tipoPapel}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Valor:</span><span className="font-extrabold text-[#E63946]">{formatarMoeda(ordensEquipe.find(o => o.id === modalPagamento.ordemServicoId)?.precoCota ?? 0)}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Patrocinador:</span><span className="font-bold">{modalPagamento.empresa}</span></div>
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <button onClick={() => setModalPagamento(null)} className="px-4 py-2 text-sm border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50">Cancelar</button>
-              <button onClick={() => confirmarPagamento(modalPagamento)} className="px-5 py-2 text-sm font-bold bg-[#E63946] text-white rounded-xl hover:bg-[#d62839]">
-                Simular Pagamento
-              </button>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </Modal>
     </div>
   );

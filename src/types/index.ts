@@ -158,6 +158,13 @@ export interface MensagensAutomaticasWhatsApp {
   novaReferencia?: string;
   entregaMapa?: string;
   aprovacaoAdesao?: string;
+  vezNaFila?: string;
+  solicitacaoEntrada?: string;
+  osPreenchida?: string;
+  lembreteMapa3dias?: string;
+  lembreteMapa1dia?: string;
+  lembretePatrocinador?: string;
+  entradaGrupo?: string;
 }
 
 export interface ConfiguracaoIntegracao {
@@ -210,6 +217,13 @@ export interface EntradaFila {
   status: StatusEntradaFila;
   dataEntrada: string;
   dataExpiracao?: string;
+  billingType?: 'PIX' | 'BOLETO';
+  asaasPaymentId?: string;
+  asaasPaymentStatus?: string;
+  asaasBankSlipUrl?: string;
+  asaasInvoiceUrl?: string;
+  asaasPixQrcode?: string;
+  asaasPixCopyPaste?: string;
 }
 
 export interface SolicitacaoCriacaoGrupo {

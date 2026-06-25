@@ -9,7 +9,10 @@ use Carbon\Carbon;
 
 class QueueService
 {
-    public function __construct(private NotificationService $notificationService) {}
+    public function __construct(
+        private NotificationService $notificationService,
+        private EvolutionService $evolutionService,
+    ) {}
 
     public function join(ServiceOrder $serviceOrder, User $user, array $data): QueueEntry
     {
@@ -71,6 +74,15 @@ class QueueService
                     "Todas as {$serviceOrder->sponsor_slots} vaga(s) de patrocínio da O.S. #{$serviceOrder->id} foram preenchidas!",
                     true
                 );
+
+                User::where('team_id', $serviceOrder->team_id)
+                    ->whereIn('role', ['coordenador', 'trio'])
+                    ->whereNotNull('phone')
+                    ->get()
+                    ->each(fn(User $u) => $this->evolutionService->sendAutoMessage('osPreenchida', $u->phone, [
+                        'osId'  => $serviceOrder->id,
+                        'vagas' => $serviceOrder->sponsor_slots,
+                    ]));
             }
         }
 
@@ -175,6 +187,15 @@ class QueueService
                 'patrocinador',
                 "{$next->name} avançou na fila e tem 2 dias para confirmar o patrocínio na O.S. #{$serviceOrder->id}."
             );
+
+            if ($next->phone) {
+                $this->evolutionService->sendAutoMessage('vezNaFila', $next->phone, [
+                    'nome'   => $next->name,
+                    'osId'   => $serviceOrder->id,
+                    'valor'  => 'R$ ' . number_format((float) $serviceOrder->quota_price, 2, ',', '.'),
+                    'prazo'  => '2 dias',
+                ]);
+            }
         }
     }
 }
