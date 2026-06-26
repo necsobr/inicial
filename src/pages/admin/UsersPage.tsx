@@ -6,7 +6,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import Modal from '../../components/Modal';
 import { labelPapel } from '../../utils/format';
 import { usuarioService } from '../../services/storeService';
-import { authService } from '../../services/authService';
 import type { Usuario, UserRole } from '../../types';
 
 interface FormData {
@@ -38,7 +37,7 @@ const rotaPorPapel: Record<string, string> = {
 
 export default function UsersPage() {
   const { usuarios, setUsuarios, equipes } = useStore();
-  const { setUsuario } = useAuth();
+  const { loginComo } = useAuth();
   const navigate = useNavigate();
   const [busca, setBusca] = useState('');
   const [filtroPapel, setFiltroPapel] = useState('');
@@ -97,13 +96,9 @@ export default function UsersPage() {
     } catch {}
   };
 
-  const loginComo = async (u: Usuario) => {
-    if (!confirm(`Logar como ${u.nome}?\n\nVocê será redirecionado para o painel deste usuário. Para voltar, faça logout e entre novamente com sua conta de administrador.`)) return;
-    try {
-      const { usuario: novo } = await authService.loginComo(u.id);
-      setUsuario(novo);
-      navigate(rotaPorPapel[novo.papel] ?? '/');
-    } catch {}
+  const handleLoginComo = async (u: Usuario) => {
+    if (!confirm(`Logar como ${u.nome}?`)) return;
+    try { await loginComo(u); } catch {}
   };
 
   return (
@@ -185,7 +180,7 @@ export default function UsersPage() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex justify-center gap-2">
-                      <button onClick={() => loginComo(u)} className="text-slate-400 hover:text-slate-700 p-1" title="Login como este usuário"><LogIn className="h-4 w-4" /></button>
+                      <button onClick={() => void handleLoginComo(u)} className="text-slate-400 hover:text-slate-700 p-1" title="Login como este usuário"><LogIn className="h-4 w-4" /></button>
                       <button onClick={() => abrirEditar(u)} className="text-indigo-500 hover:text-indigo-700 p-1" title="Editar"><Edit className="h-4 w-4" /></button>
                       <button onClick={() => alternarStatus(u)} className="text-emerald-500 hover:text-emerald-700 p-1" title="Alternar status"><CheckCircle className="h-4 w-4" /></button>
                       <button onClick={() => excluir(u.id)} className="text-[#E63946] hover:text-red-700 p-1" title="Excluir"><Trash2 className="h-4 w-4" /></button>

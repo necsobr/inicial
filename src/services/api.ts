@@ -1,5 +1,6 @@
 const BASE = '/api';
-const TOKEN_KEY = 'aiprint_token';
+const TOKEN_KEY          = 'aiprint_token';
+const ORIGINAL_TOKEN_KEY = 'aiprint_original_token';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -11,6 +12,18 @@ export function saveToken(token: string): void {
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+}
+
+export function getOriginalToken(): string | null {
+  return localStorage.getItem(ORIGINAL_TOKEN_KEY);
+}
+
+export function saveOriginalToken(token: string): void {
+  localStorage.setItem(ORIGINAL_TOKEN_KEY, token);
+}
+
+export function clearOriginalToken(): void {
+  localStorage.removeItem(ORIGINAL_TOKEN_KEY);
 }
 
 class ApiError extends Error {
