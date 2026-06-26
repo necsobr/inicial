@@ -12,6 +12,7 @@ import AdminLayout from './pages/admin/AdminLayout';
 import DashboardPage from './pages/admin/DashboardPage';
 import UsersPage from './pages/admin/UsersPage';
 import TeamsPage from './pages/admin/TeamsPage';
+import TeamDetailPage from './pages/admin/TeamDetailPage';
 import SponsorsAdminPage from './pages/admin/SponsorsPage';
 import ProductionAdminPage from './pages/admin/ProductionPage';
 import SettingsPage from './pages/admin/SettingsPage';
@@ -96,6 +97,7 @@ function AppRoutes() {
             <Route index element={<DashboardPage />} />
             <Route path="usuarios" element={<UsersPage />} />
             <Route path="equipes" element={<TeamsPage />} />
+            <Route path="equipes/:id" element={<TeamDetailPage />} />
             <Route path="patrocinadores" element={<SponsorsAdminPage />} />
             <Route path="producao" element={<ProductionAdminPage />} />
             <Route path="configuracoes" element={<SettingsPage />} />

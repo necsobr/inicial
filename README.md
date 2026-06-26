@@ -32,13 +32,23 @@ A API está disponível em **http://localhost/api**
 
 ## Credenciais de acesso
 
-| Papel | E-mail | Senha | Rota |
-|-------|--------|-------|------|
-| Admin | admin@admin.com | 123456 | /admin |
-| Coordenador | coordenador@aiprint.com | 123456 | /coordenador |
-| Trio | trio@aiprint.com | 123456 | /trio |
-| Membro | membro@aiprint.com | 123456 | /membro |
-| Produção | producao@aiprint.com | 123456 | /producao |
+Senha padrão de todos os usuários: **`123456`**
+
+### Usuários globais
+
+| Papel | E-mail | Rota |
+|-------|--------|------|
+| Admin | admin@admin.com | /admin |
+| Produção | producao@aiprint.com | /producao |
+
+### Equipes de exemplo (seedadas)
+
+| Equipe | Coordenador | Trio (1/2/3) | Membros |
+|--------|-------------|--------------|---------|
+| VP INSPIRE | coordenador@aiprint.com | trio@aiprint.com | membro@aiprint.com |
+| BNI LIDERANÇA | coordenador@bnilideranca.com | trio1@bnilideranca.com … trio3@ | membro1@bnilideranca.com … membro16@ |
+| BNI CRESCIMENTO | coordenador@bnicrescimento.com | trio1@bnicrescimento.com … trio3@ | membro1@bnicrescimento.com … membro16@ |
+| BNI SUCESSO | coordenador@bnisucesso.com | trio1@bnisucesso.com … trio3@ | membro1@bnisucesso.com … membro16@ |
 
 ## Stack
 
@@ -123,14 +133,56 @@ A impressão é assíncrona: o job entra na fila Redis (`impressao`) e o contain
 
 ### Pagamentos — Asaas
 
-Integração com Asaas para cobrança das cotas de patrocínio via PIX ou Boleto. Configure a chave de API em **Admin → Configurações → Asaas**.
+Integração com Asaas para cobrança das cotas de patrocínio via PIX ou Boleto.
 
-- Produção: chave `aas_live_...` com URL `https://api.asaas.com/v3`
-- Sandbox: chave `aas_test_...` com URL `https://sandbox.asaas.com/api/v3`
+**Como configurar:**
+
+1. Acesse **Admin → Configurações → Asaas (Pagamentos)**
+2. Ative a integração
+3. Preencha:
+
+| Campo | Valor |
+|-------|-------|
+| URL do Endpoint | `https://sandbox.asaas.com/api/v3` (sandbox) ou `https://api.asaas.com/v3` (produção) |
+| Chave de API | Chave gerada no painel do Asaas (`aas_test_...` para sandbox, `aas_live_...` para produção) |
+
+> A chave de API está em **Asaas → Configurações da conta → Integrações → Gerar nova chave**.
 
 ### WhatsApp — Evolution API
 
-Mensagens automáticas enviadas pelo sistema em eventos como: solicitação de entrada no grupo, vez na fila de patrocínio, O.S. preenchida, lembretes de mapa. Configure os templates em **Admin → Mensagens WhatsApp**.
+Mensagens automáticas enviadas em eventos como: solicitação de entrada no grupo, vez na fila de patrocínio, O.S. preenchida, lembretes de mapa.
+
+A instância `aiprint` é criada automaticamente no `make up`. Após subir o ambiente, basta vincular o número:
+
+**Como configurar:**
+
+1. Acesse **Admin → Configurações → Evolution API (WhatsApp)**
+2. Confirme os dados pré-preenchidos:
+
+| Campo | Valor |
+|-------|-------|
+| URL do Endpoint | `http://evolution:8080` |
+| Chave de API | `aiprint-evolution-key` |
+| Nome da Instância | `aiprint` |
+
+3. Clique em **Gerar QR Code** e escaneie com o WhatsApp do número que enviará as mensagens
+   - Ou clique em **Código por número**, informe o número e use o código de pareamento
+
+> O manager da Evolution API fica disponível em **http://localhost:8080/manager** com a mesma API Key.
+
+4. Após conectar, configure os templates em **Admin → Mensagens WhatsApp**
+
+**Variáveis disponíveis nos templates:**
+
+| Variável | Descrição |
+|----------|-----------|
+| `{{{nomeGrupo}}}` | Nome da equipe |
+| `{{{nomeMembro}}}` | Nome do destinatário |
+| `{{{empresa}}}` | Empresa do membro |
+| `{{{dataReuniao}}}` | Data da reunião |
+| `{{{dataEntrega}}}` | Data de entrega do mapa |
+| `{{{linkPagamento}}}` | Link do boleto/PIX |
+| `{{{posicaoFila}}}` | Posição na fila de patrocínio |
 
 ## Deploy em produção
 

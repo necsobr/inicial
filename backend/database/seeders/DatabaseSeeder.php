@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             MemberSeeder::class,
             IntegrationSeeder::class,
+            GruposSeeder::class,
         ]);
     }
 }

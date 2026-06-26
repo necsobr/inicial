@@ -1,13 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Usuario, UserRole } from '../types';
-import { getToken } from '../services/api';
+import { getToken, getOriginalToken, saveToken, saveOriginalToken, clearOriginalToken } from '../services/api';
 import { authService } from '../services/authService';
 
 interface AuthContextType {
   usuario: Usuario | null;
   carregando: boolean;
+  impersonando: boolean;
   login: (email: string, senha: string) => Promise<Usuario | null>;
   logout: () => Promise<void>;
+  loginComo: (u: Usuario) => Promise<void>;
+  voltarParaAdmin: () => Promise<void>;
   registrar: (dados: { nome: string; empresa: string; email: string; telefone: string; equipeId: string }) => Promise<Usuario | null>;
   registrarNovoGrupo: (dados: { nome: string; empresa: string; email: string; telefone: string; nomeGrupo: string; regional: string; cidade: string }) => Promise<Usuario | null>;
   atualizarPerfil: (dados: Partial<Pick<Usuario, 'nome' | 'email' | 'telefone' | 'empresa'>>) => Promise<void>;
@@ -17,13 +20,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const rotaPorPapel: Record<string, string> = {
+  admin: '/admin', coordenador: '/coordenador', trio: '/trio', membro: '/membro', producao: '/producao',
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [impersonando, setImpersonando] = useState(false);
 
   useEffect(() => {
     const token = getToken();
     if (!token) { setCarregando(false); return; }
+    setImpersonando(!!getOriginalToken());
     authService.me()
       .then(u => setUsuario(u))
       .catch(() => {})
@@ -42,7 +51,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async (): Promise<void> => {
     await authService.logout();
+    clearOriginalToken();
+    setImpersonando(false);
     setUsuario(null);
+  };
+
+  const loginComo = async (alvo: Usuario): Promise<void> => {
+    const tokenAtual = getToken();
+    if (tokenAtual) saveOriginalToken(tokenAtual);
+    const { usuario: novo } = await authService.loginComo(alvo.id);
+    setUsuario(novo);
+    setImpersonando(true);
+    window.location.href = rotaPorPapel[novo.papel] ?? '/';
+  };
+
+  const voltarParaAdmin = async (): Promise<void> => {
+    const tokenOriginal = getOriginalToken();
+    if (!tokenOriginal) return;
+    saveToken(tokenOriginal);
+    clearOriginalToken();
+    setImpersonando(false);
+    const u = await authService.me();
+    setUsuario(u);
+    window.location.href = '/admin';
   };
 
   const registrar = async (dados: {
@@ -85,7 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      usuario, carregando, login, logout,
+      usuario, carregando, impersonando,
+      login, logout, loginComo, voltarParaAdmin,
       registrar, registrarNovoGrupo,
       atualizarPerfil, alterarPapel, setUsuario,
     }}>

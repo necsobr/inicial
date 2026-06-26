@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, Trash2, MapPin, Users, CheckCircle, XCircle, Building2, Phone, PlusCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Trash2, MapPin, Users, CheckCircle, XCircle, Building2, Phone, PlusCircle, ChevronRight } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
 import Modal from '../../components/Modal';
 import { formatarMoeda } from '../../utils/format';
@@ -13,6 +14,7 @@ export default function TeamsPage() {
     solicitacoesCriacaoGrupo,
     aprovarCriacaoGrupo, rejeitarCriacaoGrupo,
   } = useStore();
+  const navigate = useNavigate();
   const [modalAberto, setModalAberto] = useState(false);
   const [form, setForm] = useState({ nome: '', regional: '', cidade: '' });
 
@@ -127,26 +129,37 @@ export default function TeamsPage() {
         {pendentes.length > 0 && <h2 className="text-lg font-extrabold text-slate-900 mb-4">Equipes Ativas</h2>}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {equipes.map(eq => {
-            const gestores = usuarios.filter(u => eq.gestoresIds.includes(u.id));
+            const gestores = usuarios.filter(u => u.equipeId === eq.id && ['coordenador', 'trio'].includes(u.papel));
+            const totalUsuarios = usuarios.filter(u => u.equipeId === eq.id).length;
             return (
-              <div key={eq.id} className="rounded-3xl p-6 glass-card shadow-xl space-y-5">
+              <div
+                key={eq.id}
+                onClick={() => navigate(`/admin/equipes/${eq.id}`)}
+                className="rounded-3xl p-6 glass-card shadow-xl space-y-5 cursor-pointer hover:shadow-2xl hover:-translate-y-0.5 transition-all"
+              >
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-extrabold text-slate-900 text-lg">{eq.nome}</h3>
                     <div className="flex items-center gap-1 text-xs text-slate-400 mt-1">
                       <MapPin className="h-3.5 w-3.5" />
-                      {eq.cidade} · {eq.regional}
+                      {eq.cidade}{eq.regional ? ` · ${eq.regional}` : ''}
                     </div>
                   </div>
-                  <button onClick={() => excluir(eq.id)} className="text-slate-300 hover:text-[#E63946] p-1 transition">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={e => { e.stopPropagation(); excluir(eq.id); }}
+                      className="text-slate-300 hover:text-[#E63946] p-1 transition"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <ChevronRight className="h-4 w-4 text-slate-300" />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: 'Membros', valor: eq.stats.totalMembros },
-                    { label: 'Negócios', valor: formatarMoeda(eq.stats.negociosGeradosReais) },
+                    { label: 'Usuários',      valor: totalUsuarios },
+                    { label: 'Negócios',      valor: formatarMoeda(eq.stats.negociosGeradosReais) },
                     { label: 'Ref. Internas', valor: eq.stats.referenciasInternas },
                     { label: 'Ref. Externas', valor: eq.stats.referenciasExternas },
                   ].map((s, i) => (
@@ -160,14 +173,14 @@ export default function TeamsPage() {
                 <div>
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase mb-2">
                     <Users className="h-3.5 w-3.5" />
-                    Gestores ({gestores.length})
+                    Coordenadores / Trio ({gestores.length})
                   </div>
                   {gestores.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic">Nenhum gestor associado.</p>
+                    <p className="text-xs text-slate-400 italic">Nenhum coordenador associado.</p>
                   ) : gestores.map(g => (
                     <div key={g.id} className="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0">
                       <span className="text-sm text-slate-700">{g.nome}</span>
-                      <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full capitalize">Coordenador</span>
+                      <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full capitalize">{g.papel}</span>
                     </div>
                   ))}
                 </div>
