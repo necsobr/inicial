@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Printer, CheckCircle, Play, Search, Package, Download } from 'lucide-react';
+import { Printer, CheckCircle, Play, Search, Package, Download, Edit2, X } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
 import { mapaReferenciaService } from '../../services/storeService';
 import { formatarData } from '../../utils/format';
@@ -26,6 +26,7 @@ export default function ProductionDashboard() {
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroEquipe, setFiltroEquipe] = useState('');
+  const [editandoId, setEditandoId] = useState<string | null>(null);
 
   const filtrados = mapaReferencia.filter(m => {
     const eq = equipes.find(e => e.id === m.equipeId);
@@ -47,6 +48,14 @@ export default function ProductionDashboard() {
       const atualizado = await mapaReferenciaService.atualizarStatus(id, novoStatus);
       setMapaReferencia(mapaReferencia.map(m => m.id === id ? atualizado : m));
     } catch {}
+  };
+
+  const editarStatus = async (id: string, novoStatus: StatusMapaReferencia) => {
+    try {
+      const atualizado = await mapaReferenciaService.atualizarStatus(id, novoStatus);
+      setMapaReferencia(mapaReferencia.map(m => m.id === id ? atualizado : m));
+    } catch {}
+    setEditandoId(null);
   };
 
   const naFila = mapaReferencia.filter(m => m.status !== 'entregue').length;
@@ -157,24 +166,54 @@ export default function ProductionDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {proxStatus && (
-                          <button
-                            onClick={() => { void avancarStatus(m.id); }}
-                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition mx-auto ${
-                              proxStatus === 'entregue'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-500 hover:text-white'
-                                : 'bg-[#E63946]/10 text-[#E63946] border-[#E63946]/20 hover:bg-[#E63946] hover:text-white'
-                            }`}
-                          >
-                            {proxStatus === 'entregue' ? <CheckCircle className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                            {LABEL[proxStatus]}
-                          </button>
-                        )}
-                        {entregue && (
-                          <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1 justify-center">
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            Concluído
-                          </span>
+                        {editandoId === m.id ? (
+                          <div className="flex items-center gap-1.5 justify-center">
+                            <select
+                              autoFocus
+                              defaultValue={m.status}
+                              onChange={e => { void editarStatus(m.id, e.target.value as StatusMapaReferencia); }}
+                              className="text-xs rounded-lg border border-slate-200 bg-white py-1.5 px-2 outline-none focus:border-[#E63946]"
+                            >
+                              {sequencia.map(s => (
+                                <option key={s} value={s}>{LABEL[s]}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => setEditandoId(null)}
+                              className="p-1 text-slate-400 hover:text-slate-600 rounded transition"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 justify-center">
+                            {proxStatus && (
+                              <button
+                                onClick={() => { void avancarStatus(m.id); }}
+                                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition ${
+                                  proxStatus === 'entregue'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-500 hover:text-white'
+                                    : 'bg-[#E63946]/10 text-[#E63946] border-[#E63946]/20 hover:bg-[#E63946] hover:text-white'
+                                }`}
+                              >
+                                {proxStatus === 'entregue' ? <CheckCircle className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                                {LABEL[proxStatus]}
+                              </button>
+                            )}
+                            {entregue && (
+                              <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                Concluído
+                              </span>
+                            )}
+                            <button
+                              onClick={() => setEditandoId(m.id)}
+                              title="Editar etapa"
+                              className="p-1.5 text-slate-400 hover:text-[#E63946] hover:bg-[#E63946]/10 rounded-lg transition border border-transparent hover:border-[#E63946]/20"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
