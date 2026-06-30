@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Printer, CheckCircle, Play, Search, Package, Download, Edit2, X } from 'lucide-react';
 import { useStore } from '../../contexts/StoreContext';
 import { mapaReferenciaService } from '../../services/storeService';
+import { getToken } from '../../services/api';
 import { formatarData } from '../../utils/format';
+import Modal from '../../components/Modal';
 import type { StatusMapaReferencia } from '../../types';
 
 const sequencia: StatusMapaReferencia[] = ['recebido', 'em_producao', 'pronto', 'entregue'];
@@ -22,11 +24,15 @@ const BADGE: Record<StatusMapaReferencia, string> = {
 };
 
 export default function ProductionDashboard() {
-  const { mapaReferencia, setMapaReferencia, equipes, eventos } = useStore();
+  const { mapaReferencia, setMapaReferencia, equipes, eventos, ordensServico } = useStore();
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroEquipe, setFiltroEquipe] = useState('');
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [mapaParaImprimir, setMapaParaImprimir] = useState<string | null>(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [carregandoPdf, setCarregandoPdf] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const filtrados = mapaReferencia.filter(m => {
     const eq = equipes.find(e => e.id === m.equipeId);
@@ -59,6 +65,14 @@ export default function ProductionDashboard() {
   };
 
   const naFila = mapaReferencia.filter(m => m.status !== 'entregue').length;
+
+  const mapaAtual = mapaReferencia.find(m => m.id === mapaParaImprimir);
+  const osAtual = mapaAtual ? ordensServico.find(o => o.id === mapaAtual.ordemServicoId) : null;
+  const eqAtual = mapaAtual ? equipes.find(e => e.id === mapaAtual.equipeId) : null;
+  const evAtual = mapaAtual ? eventos.find(e => e.id === mapaAtual.eventoId) : null;
+  const copiasPorImpressao = osAtual
+    ? Math.floor((osAtual.numeroCopias ?? 1) / Math.max(osAtual.numeroReunioes, 1))
+    : 1;
 
   return (
     <div className="min-h-full bg-[#F8F9FA]">
@@ -213,6 +227,26 @@ export default function ProductionDashboard() {
                             >
                               <Edit2 className="h-3.5 w-3.5" />
                             </button>
+                            {m.fileUrl && (
+                              <button
+                                onClick={async () => {
+                                  setMapaParaImprimir(m.id);
+                                  setCarregandoPdf(true);
+                                  try {
+                                    const res = await fetch(`/api/reference-maps/${m.id}/file`, {
+                                    headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+                                  });
+                                    const blob = await res.blob();
+                                    setPdfBlobUrl(URL.createObjectURL(blob));
+                                  } catch { /* mantém o modal aberto sem prévia */ }
+                                  finally { setCarregandoPdf(false); }
+                                }}
+                                title="Imprimir"
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition border border-transparent hover:border-indigo-200"
+                              >
+                                <Printer className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
@@ -246,6 +280,91 @@ export default function ProductionDashboard() {
           })}
         </div>
       </div>
+
+      <Modal
+        aberto={!!mapaParaImprimir}
+        onFechar={() => {
+          if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+          setPdfBlobUrl(null);
+          setMapaParaImprimir(null);
+        }}
+        titulo="Imprimir Mapa de Referência"
+      >
+        {mapaAtual && (
+          <div className="space-y-4">
+            {/* Instruções de impressão */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-3 text-center">
+                <p className="text-[10px] font-bold text-indigo-400 uppercase mb-1">Cópias</p>
+                <p className="text-3xl font-extrabold text-indigo-700">{copiasPorImpressao}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Papel</p>
+                <p className="text-3xl font-extrabold text-slate-700">{osAtual?.tipoPapel ?? '—'}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Impressora</p>
+                <p className="text-sm font-extrabold text-slate-700 leading-tight mt-1">
+                  {osAtual?.tipoPapel === 'A3' ? 'Epson L1455' : 'Epson L4260'}
+                </p>
+              </div>
+            </div>
+
+            {/* Prévia do PDF */}
+            <div className="w-full rounded-xl border border-slate-200 overflow-hidden" style={{ height: '420px' }}>
+              {carregandoPdf ? (
+                <div className="h-full flex items-center justify-center text-slate-400 text-sm gap-2">
+                  <span className="h-4 w-4 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin" />
+                  Carregando PDF...
+                </div>
+              ) : pdfBlobUrl ? (
+                <iframe
+                  ref={iframeRef}
+                  src={pdfBlobUrl}
+                  className="w-full h-full border-none"
+                  title="preview-pdf"
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-400 text-sm">
+                  Não foi possível carregar a prévia.
+                </div>
+              )}
+            </div>
+
+            {/* Info do mapa */}
+            <div className="text-xs text-slate-500 space-y-0.5">
+              <p><span className="font-semibold text-slate-700">Equipe:</span> {eqAtual?.nome ?? '—'}</p>
+              <p><span className="font-semibold text-slate-700">Evento:</span> {evAtual?.titulo ?? '—'} {evAtual ? `— ${formatarData(evAtual.data)}` : ''}</p>
+              <p><span className="font-semibold text-slate-700">Arquivo:</span> {mapaAtual.nomeArquivo}</p>
+              <p><span className="font-semibold text-slate-700">Entrega:</span> {formatarData(mapaAtual.dataEntrega)} às {mapaAtual.horaEntrega} — {mapaAtual.enderecoEntrega}</p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-1">
+              <button
+                onClick={() => {
+                  if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+                  setPdfBlobUrl(null);
+                  setMapaParaImprimir(null);
+                }}
+                className="px-4 py-2 text-sm border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  if (!pdfBlobUrl) return;
+                  const popup = window.open(pdfBlobUrl, '_blank', 'popup,width=900,height=700');
+                  if (popup) setTimeout(() => popup.print(), 1000);
+                }}
+                className="flex items-center gap-2 px-5 py-2 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
+              >
+                <Printer className="h-4 w-4" />
+                Imprimir
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

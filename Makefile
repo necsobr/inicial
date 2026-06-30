@@ -29,6 +29,7 @@ install:
 	$(COMPOSE) run --rm app composer install
 	@if [ ! -f backend/.env ]; then cp backend/.env.example backend/.env; fi
 	@if ! grep -q "^APP_KEY=.\+" backend/.env; then $(COMPOSE) run --rm app php artisan key:generate; fi
+	$(COMPOSE) run --rm app php artisan storage:link 2>/dev/null || true
 	@echo "$(GREEN)✔ Dependências instaladas.$(RESET)"
 
 # ─────────────────────────────────────────────

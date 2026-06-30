@@ -114,6 +114,19 @@ class ReferenceMapController extends Controller
         return response()->json(['message' => 'Mapa de referência removido com sucesso.']);
     }
 
+    public function file(ReferenceMap $referenceMap): \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
+    {
+        if (!$referenceMap->file_path || !Storage::disk('public')->exists($referenceMap->file_path)) {
+            return response()->json(['message' => 'Arquivo não encontrado.'], 404);
+        }
+
+        return Storage::disk('public')->response(
+            $referenceMap->file_path,
+            $referenceMap->file_name,
+            ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="' . addslashes($referenceMap->file_name) . '"']
+        );
+    }
+
     public function print(Request $request, ReferenceMap $referenceMap): JsonResponse
     {
         $data = $request->validate([
