@@ -598,7 +598,12 @@ export default function CoordinatorDashboard() {
                       const isSelf = u.id === usuario?.id;
                       const papelCor = u.papel === 'trio' ? 'bg-violet-100 text-violet-700' : u.papel === 'coordenador' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600';
                       return (
-                        <div key={u.id} className={`rounded-2xl p-4 glass-card shadow-sm hover:shadow-md transition-all ${isSelf ? 'ring-2 ring-[#E63946]/20' : ''}`}>
+                        <div key={u.id} className={`relative rounded-2xl p-4 glass-card shadow-sm hover:shadow-md transition-all ${u.papel === 'coordenador' ? 'ring-2 ring-amber-400 shadow-amber-100' : isSelf ? 'ring-2 ring-[#E63946]/20' : ''}`}>
+                          {u.papel === 'coordenador' && (
+                            <div className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-amber-400 flex items-center justify-center shadow-md border-2 border-white z-10">
+                              <Crown className="h-3.5 w-3.5 text-white" />
+                            </div>
+                          )}
                           <div className="flex items-start gap-3 mb-3">
                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-extrabold shrink-0 ${u.papel === 'trio' ? 'bg-violet-100 text-violet-700' : u.papel === 'coordenador' ? 'bg-emerald-100 text-emerald-700' : 'bg-[#E63946]/10 text-[#E63946]'}`}>
                               {u.nome.charAt(0)}
